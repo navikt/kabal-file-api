@@ -1,0 +1,40 @@
+spring:
+  main:
+    banner-mode: OFF
+  sleuth:
+    propagation-keys:
+      - Nav-Callid
+      - Nav-Consumer-Id
+    log:
+      slf4j:
+        whitelisted-mdc-keys:
+          - Nav-Callid
+          - Nav-Consumer-Id
+  servlet:
+    multipart:
+      max-request-size: 10MB
+      max-file-size: 10MB
+
+server:
+  port: 7080
+  error:
+    whitelabel:
+      enabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints.web:
+    exposure:
+      include: info, health, metrics, prometheus
+    base-path: "/internal"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+GCS_BUCKET: kabal-files
+
+navCallId: Nav-Callid
+navConsumerId: Nav-Consumer-Id

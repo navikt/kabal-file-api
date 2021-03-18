@@ -1,0 +1,8 @@
+{
+  "buckets": [
+    "kabal-files-dev"
+  ],
+  "env": {
+    "GCS_BUCKET": "kabal-files-dev"
+  }
+}
