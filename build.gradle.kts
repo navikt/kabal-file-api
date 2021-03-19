@@ -23,6 +23,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 }
 
+tasks.withType<KotlinCompile> {
+    kotlinOptions.jvmTarget = "11"
+}
+
 tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
     this.archiveFileName.set("app.jar")
 }
