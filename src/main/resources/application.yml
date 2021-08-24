@@ -40,7 +40,5 @@ management:
       prometheus:
         enabled: true
 
-GCS_BUCKET: klage-files
-
 navCallId: Nav-Callid
 navConsumerId: Nav-Consumer-Id

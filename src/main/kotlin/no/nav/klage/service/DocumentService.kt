@@ -56,7 +56,7 @@ class DocumentService {
         val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, idAndFileName.toPath())).build()
         getGcsStorage().create(blobInfo, file.bytes).exists()
 
-        logger.debug("Document saved, and id is {}", id)
+        logger.debug("Document saved, and id is {}", idAndFileName)
 
         return idAndFileName
     }
