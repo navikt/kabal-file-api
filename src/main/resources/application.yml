@@ -21,6 +21,12 @@ server:
     whitelabel:
       enabled: false
 
+#Token validation
+no.nav.security.jwt:
+  issuer.azuread:
+    discoveryurl: ${AZURE_APP_WELL_KNOWN_URL}
+    accepted_audience: ${AZURE_APP_CLIENT_ID}
+
 management:
   endpoint:
     health:
@@ -34,7 +40,7 @@ management:
       prometheus:
         enabled: true
 
-GCS_BUCKET: kabal-files
+GCS_BUCKET: klage-files
 
 navCallId: Nav-Callid
 navConsumerId: Nav-Consumer-Id
