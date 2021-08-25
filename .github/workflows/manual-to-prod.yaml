@@ -8,12 +8,12 @@ env:
 jobs:
   deploytoprod:
     name: Deploy to prod
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
         name: Checkout code
-      - uses: nais/deploy/actions/deploy@master
+      - uses: nais/deploy/actions/deploy@main
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_API_KEY }}
           CLUSTER: prod-gcp
