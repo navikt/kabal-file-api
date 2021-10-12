@@ -18,6 +18,7 @@ spec:
     inbound:
       rules:
         - application: kabal-api
+        - application: kabal-document
   liveness:
     path: /internal/health
     initialDelay: 20
