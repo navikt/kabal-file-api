@@ -3,7 +3,7 @@ package no.nav.klage.config
 import brave.Tracer
 import brave.baggage.BaggageField
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.cloud.sleuth.instrument.web.TraceWebServletAutoConfiguration
+import org.springframework.context.annotation.Profile
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.GenericFilterBean
@@ -15,7 +15,8 @@ import javax.servlet.ServletResponse
  * Adding some custom NAV-specific attributes to standard Spring Sleuth
  */
 @Component
-@Order(TraceWebServletAutoConfiguration.TRACING_FILTER_ORDER + 1)
+@Profile("!local")
+@Order(-20)
 class CustomTraceFilter(private val tracer: Tracer) : GenericFilterBean() {
 
     @Value("\${spring.application.name}")
