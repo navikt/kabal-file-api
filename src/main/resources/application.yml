@@ -1,4 +1,6 @@
 spring:
+  application:
+    name: kabal-file-api
   main:
     banner-mode: OFF
   sleuth:
