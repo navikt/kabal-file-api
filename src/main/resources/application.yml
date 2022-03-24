@@ -17,6 +17,8 @@ spring:
       max-request-size: 10MB
       max-file-size: 10MB
 
+org.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH: true
+
 server:
   port: 7080
   error:
