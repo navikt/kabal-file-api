@@ -51,14 +51,13 @@ class DocumentService {
         logger.debug("Saving document")
 
         val id = UUID.randomUUID().toString()
-        val idAndFileName = id + file.originalFilename
 
-        val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, idAndFileName.toPath())).build()
+        val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath())).build()
         getGcsStorage().create(blobInfo, file.bytes).exists()
 
-        logger.debug("Document saved, and id is {}", idAndFileName)
+        logger.debug("Document saved, and id is {}", id)
 
-        return idAndFileName
+        return id
     }
 
     private fun String.toPath() = "document/$this"
