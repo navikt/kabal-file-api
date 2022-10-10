@@ -11,9 +11,10 @@ repositories {
 }
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.7.10"
+    val kotlinVersion = "1.7.20"
+    kotlin("jvm") version kotlinVersion
+    kotlin("plugin.spring") version kotlinVersion
     id("org.springframework.boot") version "2.7.4"
-    id("org.jetbrains.kotlin.plugin.spring") version "1.7.10"
     idea
 }
 
