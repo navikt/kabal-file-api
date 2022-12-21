@@ -56,3 +56,5 @@ spec:
     - name: {{@key}}
       value: "{{this}}"
     {{/each}}
+    - name: JAVA_OPTS
+      value: "-Xms512m -Xmx4096m"
