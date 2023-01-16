@@ -3,15 +3,6 @@ spring:
     name: kabal-file-api
   main:
     banner-mode: OFF
-  sleuth:
-    propagation-keys:
-      - Nav-Callid
-      - Nav-Consumer-Id
-    log:
-      slf4j:
-        whitelisted-mdc-keys:
-          - Nav-Callid
-          - Nav-Consumer-Id
   servlet:
     multipart:
       max-request-size: 10MB
@@ -29,6 +20,8 @@ no.nav.security.jwt:
     discoveryurl: ${AZURE_APP_WELL_KNOWN_URL}
     accepted_audience: ${AZURE_APP_CLIENT_ID}
 
+navCallIdName: Nav-Callid
+
 management:
   endpoint:
     health:
@@ -37,10 +30,14 @@ management:
     exposure:
       include: info, health, metrics, prometheus
     base-path: "/internal"
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
-
-navCallId: Nav-Callid
-navConsumerId: Nav-Consumer-Id
+  tracing:
+    baggage:
+      remote-fields:
+        - ${navCallIdName}
+      correlation:
+        fields:
+          - ${navCallIdName}

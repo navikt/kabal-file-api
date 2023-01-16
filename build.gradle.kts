@@ -2,19 +2,17 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val gcsVersion = "2.16.0"
 val logstashVersion = "7.2"
-val springSleuthVersion = "3.1.5"
-val tokenValidationVersion = "2.1.8"
+val tokenValidationVersion = "3.0.2"
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 plugins {
-    val kotlinVersion = "1.7.22"
+    val kotlinVersion = "1.8.0"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "2.7.5"
+    id("org.springframework.boot") version "3.0.1"
     idea
 }
 
@@ -28,9 +26,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.projectreactor:reactor-spring:1.0.1.RELEASE")
-    implementation("org.springframework.cloud:spring-cloud-starter-sleuth:$springSleuthVersion")
 
     implementation("io.micrometer:micrometer-registry-prometheus")
+    implementation("io.micrometer:micrometer-tracing-bridge-brave")
+
     implementation("ch.qos.logback:logback-classic")
     implementation("net.logstash.logback:logstash-logback-encoder:$logstashVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
