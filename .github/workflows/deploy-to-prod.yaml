@@ -43,7 +43,7 @@ jobs:
         env:
           TEAM: klage
           CLUSTER: prod-gcp
-          VARS: deploy/prod.yaml
+          VARS: deploy/prod.json
           RESOURCE: deploy/nais.yaml
           APIKEY: ${{ secrets.NAIS_DEPLOY_API_KEY }}
           VAR: image=${{ steps.image.outputs.image }}
