@@ -3,9 +3,6 @@ name: Manual deploy to prod
 on:
   workflow_call:
     secrets:
-      NAIS_DEPLOY_API_KEY:
-        description: "API key for nais/deploy"
-        required: true
       NAIS_WORKLOAD_IDENTITY_PROVIDER:
         description: "Identity provider for nais/docker-build-push"
         required: true
@@ -39,13 +36,12 @@ jobs:
         run: echo "image=${{ steps.image-registry.outputs.registry }}/kabal-file-api:${{ github.sha }}" >> $GITHUB_OUTPUT
 
       - name: Deploy to prod
-        uses: nais/deploy/actions/deploy@v1
+        uses: nais/deploy/actions/deploy@v2
         env:
           TEAM: klage
           CLUSTER: prod-gcp
           VARS: deploy/prod.json
           RESOURCE: deploy/nais.yaml
-          APIKEY: ${{ secrets.NAIS_DEPLOY_API_KEY }}
           VAR: image=${{ steps.image.outputs.image }}
           IMAGE: ${{ steps.image.outputs.image }}
 

@@ -3,9 +3,6 @@ name: Manual deploy to dev
 on:
   workflow_call:
     secrets:
-      NAIS_DEPLOY_API_KEY:
-        description: "API key for nais/deploy"
-        required: true
       NAIS_WORKLOAD_IDENTITY_PROVIDER:
         description: "Identity provider for nais/docker-build-push"
         required: true
@@ -84,13 +81,12 @@ jobs:
         name: Checkout code
 
       - name: Deploy to dev
-        uses: nais/deploy/actions/deploy@v1
+        uses: nais/deploy/actions/deploy@v2
         env:
           TEAM: klage
           CLUSTER: dev-gcp
           VARS: deploy/dev.json
           RESOURCE: deploy/nais.yaml
-          APIKEY: ${{ secrets.NAIS_DEPLOY_API_KEY }}
           VAR: image=${{ needs.build.outputs.image }}
           IMAGE: ${{ needs.build.outputs.image }}
 
