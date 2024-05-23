@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val gcsVersion = "2.36.1"
 val logstashVersion = "7.4"
 val tokenValidationVersion = "4.1.4"
+val googleCloudVersion = "5.3.0"
 
 repositories {
     mavenCentral()
@@ -13,10 +14,9 @@ plugins {
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     id("org.springframework.boot") version "3.2.4"
+    id("io.spring.dependency-management") version "1.1.5"
     idea
 }
-
-apply(plugin = "io.spring.dependency-management")
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -25,17 +25,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("com.google.cloud:spring-cloud-gcp-starter-storage:$googleCloudVersion")
     implementation("org.projectreactor:reactor-spring:1.0.1.RELEASE")
-
-    implementation("io.micrometer:micrometer-registry-prometheus")
-    implementation("io.micrometer:micrometer-tracing-bridge-brave")
 
     implementation("ch.qos.logback:logback-classic")
     implementation("net.logstash.logback:logstash-logback-encoder:$logstashVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("no.nav.security:token-validation-spring:$tokenValidationVersion")
-
-    implementation("com.google.cloud:google-cloud-storage:$gcsVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage", module = "org.junit.vintage")

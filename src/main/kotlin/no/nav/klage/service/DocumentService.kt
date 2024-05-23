@@ -1,5 +1,6 @@
 package no.nav.klage.service
 
+import com.google.cloud.storage.Blob
 import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.StorageOptions
@@ -8,8 +9,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import java.io.FileNotFoundException
-import java.nio.file.Files
-import java.nio.file.Path
 import java.util.*
 
 @Service
@@ -23,20 +22,17 @@ class DocumentService {
     @Value("\${GCS_BUCKET}")
     private lateinit var bucket: String
 
-    fun getDocumentAsPath(id: String): Path {
+    fun getDocumentAsBlob(id: String): Blob {
         logger.debug("Getting document with id {}", id)
 
         val blob = getGcsStorage().get(bucket, id.toPath())
+
         if (blob == null || !blob.exists()) {
             logger.warn("Document not found: {}", id)
             throw FileNotFoundException()
         }
 
-        val pathToTmpFile = Files.createTempFile(null, null)
-
-        blob.downloadTo(pathToTmpFile)
-
-        return pathToTmpFile
+        return blob
     }
 
     fun deleteDocument(id: String): Boolean {
