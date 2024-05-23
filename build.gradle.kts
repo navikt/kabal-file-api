@@ -1,18 +1,18 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val gcsVersion = "2.36.1"
+val gcsVersion = "2.39.0"
 val logstashVersion = "7.4"
-val tokenValidationVersion = "4.1.4"
+val tokenValidationVersion = "4.1.7"
 
 repositories {
     mavenCentral()
 }
 
 plugins {
-    val kotlinVersion = "1.9.23"
+    val kotlinVersion = "2.0.0"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "3.2.4"
+    id("org.springframework.boot") version "3.3.0"
     idea
 }
 
