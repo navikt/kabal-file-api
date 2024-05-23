@@ -5,12 +5,11 @@ import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.StorageOptions
 import no.nav.klage.getLogger
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.core.io.ByteArrayResource
-
-import org.springframework.core.io.Resource
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import java.io.FileNotFoundException
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 
 @Service
@@ -24,7 +23,7 @@ class DocumentService {
     @Value("\${GCS_BUCKET}")
     private lateinit var bucket: String
 
-    fun getDocumentAsResource(id: String): Resource {
+    fun getDocumentAsPath(id: String): Path {
         logger.debug("Getting document with id {}", id)
 
         val blob = getGcsStorage().get(bucket, id.toPath())
@@ -33,7 +32,11 @@ class DocumentService {
             throw FileNotFoundException()
         }
 
-        return ByteArrayResource(blob.getContent())
+        val pathToTmpFile = Files.createTempFile(null, null)
+
+        blob.downloadTo(pathToTmpFile)
+
+        return pathToTmpFile
     }
 
     fun deleteDocument(id: String): Boolean {
@@ -53,7 +56,7 @@ class DocumentService {
         val id = UUID.randomUUID().toString()
 
         val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath())).build()
-        getGcsStorage().create(blobInfo, file.bytes).exists()
+        getGcsStorage().create(blobInfo, file.inputStream).exists()
 
         logger.debug("Document saved, and id is {}", id)
 

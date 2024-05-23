@@ -4,6 +4,7 @@ package no.nav.klage.controller
 import no.nav.klage.getLogger
 import no.nav.klage.service.DocumentService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
+import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.io.FileNotFoundException
+import java.nio.file.Path
 
 @RestController
 @ProtectedWithClaims(issuer = "azuread")
@@ -25,13 +27,16 @@ class KabalController(private val documentService: DocumentService) {
     @GetMapping("{id}")
     fun getDocument(@PathVariable("id") id: String): ResponseEntity<Resource> {
         logger.debug("Get document requested with id {}", id)
+        var path: Path? = null
         return try {
-            val resource = documentService.getDocumentAsResource(id)
+            path = documentService.getDocumentAsPath(id)
             ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(resource)
+                .body(FileSystemResource(path))
         } catch (fnfe: FileNotFoundException) {
             ResponseEntity.notFound().build()
+        } finally {
+            path?.toFile()?.delete()
         }
     }
 
