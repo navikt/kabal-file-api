@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import java.io.FileNotFoundException
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 @Service
 class DocumentService {
@@ -33,6 +34,19 @@ class DocumentService {
         }
 
         return blob
+    }
+
+    fun getDocumentAsSignedUrl(id: String): String {
+        logger.debug("Getting document as signed URL with id {}", id)
+
+        val blob = getGcsStorage().get(bucket, id.toPath())
+
+        if (blob == null || !blob.exists()) {
+            logger.warn("Document not found: {}", id)
+            throw FileNotFoundException()
+        }
+
+        return blob.signUrl(1, TimeUnit.MINUTES).toExternalForm()
     }
 
     fun deleteDocument(id: String): Boolean {

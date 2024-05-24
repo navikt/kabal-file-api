@@ -35,6 +35,16 @@ class KabalController(private val documentService: DocumentService) {
         documentService.getDocumentAsBlob(id).downloadTo(response.outputStream)
     }
 
+    @GetMapping("{id}/signedurl")
+    fun getDocumentAsSignedURL(
+        @PathVariable("id") id: String,
+        response: HttpServletResponse,
+    ): String {
+        logger.debug("getDocumentAsSignedURL requested with id {}", id)
+
+        return documentService.getDocumentAsSignedUrl(id)
+    }
+
     @PostMapping
     fun addDocument(
         @RequestParam("file") file: MultipartFile
