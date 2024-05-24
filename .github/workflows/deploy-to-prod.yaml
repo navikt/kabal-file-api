@@ -40,7 +40,7 @@ jobs:
         env:
           TEAM: klage
           CLUSTER: prod-gcp
-          VARS: deploy/prod.json
+          VARS: deploy/prod.yaml
           RESOURCE: deploy/nais.yaml
           VAR: image=${{ steps.image.outputs.image }}
           IMAGE: ${{ steps.image.outputs.image }}
