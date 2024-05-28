@@ -50,8 +50,6 @@ class DocumentService {
             throw FileNotFoundException()
         }
 
-        secureLogger.debug("Logging env: GOOGLE_APPLICATION_CREDENTIALS=${System.getenv("GOOGLE_APPLICATION_CREDENTIALS")}")
-
         return blob.signUrl(1, TimeUnit.MINUTES).toExternalForm()
     }
 
