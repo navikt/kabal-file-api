@@ -55,7 +55,6 @@ spec:
       - resource:
           apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
           kind: Project
-          name: klage-dev-18fe
         role: roles/storage.buckets.get
     buckets:
     {{#each buckets}}
