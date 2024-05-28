@@ -5,6 +5,7 @@ import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.StorageOptions
 import no.nav.klage.getLogger
+import no.nav.klage.getSecureLogger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
@@ -18,6 +19,8 @@ class DocumentService {
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
+
+        private val secureLogger = getSecureLogger()
     }
 
     @Value("\${GCS_BUCKET}")
@@ -39,12 +42,15 @@ class DocumentService {
     fun getDocumentAsSignedUrl(id: String): String {
         logger.debug("Getting document as signed URL with id {}", id)
 
-        val blob = getGcsStorage().get(bucket, id.toPath())
+        val storage = getGcsStorage()
+        val blob = storage.get(bucket, id.toPath())
 
         if (blob == null || !blob.exists()) {
             logger.warn("Document not found: {}", id)
             throw FileNotFoundException()
         }
+
+        secureLogger.debug("Logging env: GOOGLE_APPLICATION_CREDENTIALS=${System.getenv("GOOGLE_APPLICATION_CREDENTIALS")}")
 
         return blob.signUrl(1, TimeUnit.MINUTES).toExternalForm()
     }
