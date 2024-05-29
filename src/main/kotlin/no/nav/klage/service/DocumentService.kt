@@ -69,7 +69,9 @@ class DocumentService {
 
         val id = UUID.randomUUID().toString()
 
-        val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath())).build()
+        val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath()))
+            .setContentType(file.contentType)
+            .build()
         getGcsStorage().create(blobInfo, file.inputStream).exists()
 
         logger.debug("Document saved, and id is {}", id)
