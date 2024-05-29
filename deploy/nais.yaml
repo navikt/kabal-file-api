@@ -50,16 +50,9 @@ spec:
   secureLogs:
     enabled: true
   webproxy: true
+  envFrom:
+    - secret: bucket-test
   gcp:
-    permissions:
-      - resource:
-          apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
-          kind: Project
-        role: roles/storage.objectViewer
-      - resource:
-          apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
-          kind: Project
-        role: roles/iam.serviceAccountTokenCreator
     buckets:
     {{#each buckets}}
        - name: {{this}}
