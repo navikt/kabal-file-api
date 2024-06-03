@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class GCSStorage(
-    @Value("\${GCS-CREDENTIALS}")
+    @Value("\${GCS_CREDENTIALS}")
     val gcsCredentials: String
 ) {
 
