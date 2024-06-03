@@ -9,14 +9,14 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class GCSStorage(
-    @Value("\${gcs-service-account-key}")
-    val gcsServiceAccountKey: String
+    @Value("\${GCS-CREDENTIALS}")
+    val gcsCredentials: String
 ) {
 
     @Bean
     fun gcsStorage(): Storage {
         return StorageOptions.newBuilder()
-            .setCredentials(GoogleCredentials.fromStream(gcsServiceAccountKey.byteInputStream()))
+            .setCredentials(GoogleCredentials.fromStream(gcsCredentials.byteInputStream()))
             .build()
             .service
     }
