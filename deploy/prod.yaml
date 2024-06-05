@@ -1,2 +1,6 @@
 buckets:
   - kabal-files-production
+
+envs:
+  - name: GCS_BUCKET
+    value: kabal-files-production
