@@ -7,7 +7,7 @@ metadata:
     team: klage
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "300M"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
 spec:
   image: {{ image }}
   azure:
@@ -50,13 +50,15 @@ spec:
   secureLogs:
     enabled: true
   webproxy: true
+  envFrom:
+    - secret: gcs-credentials
   gcp:
     buckets:
     {{#each buckets}}
        - name: {{this}}
     {{/each}}
   env:
-    {{#each env}}
-    - name: {{@key}}
-      value: "{{this}}"
+    {{#each envs}}
+    - name: {{name}}
+      value: {{value}}
     {{/each}}

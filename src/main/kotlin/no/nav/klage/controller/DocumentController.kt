@@ -1,16 +1,16 @@
 package no.nav.klage.controller
 
 
+import jakarta.servlet.http.HttpServletResponse
 import no.nav.klage.getLogger
 import no.nav.klage.service.DocumentService
 import no.nav.security.token.support.core.api.ProtectedWithClaims
-import org.springframework.core.io.Resource
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
-import java.io.FileNotFoundException
 
 @RestController
 @ProtectedWithClaims(issuer = "azuread")
@@ -23,16 +23,26 @@ class KabalController(private val documentService: DocumentService) {
     }
 
     @GetMapping("{id}")
-    fun getDocument(@PathVariable("id") id: String): ResponseEntity<Resource> {
+    fun getDocument(
+        @PathVariable("id") id: String,
+        response: HttpServletResponse,
+    ) {
         logger.debug("Get document requested with id {}", id)
-        return try {
-            val resource = documentService.getDocumentAsResource(id)
-            ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(resource)
-        } catch (fnfe: FileNotFoundException) {
-            ResponseEntity.notFound().build()
-        }
+
+        response.addHeader(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=file.pdf")
+        response.contentType = MediaType.APPLICATION_PDF_VALUE
+
+        documentService.getDocumentAsBlob(id).downloadTo(response.outputStream)
+    }
+
+    @GetMapping("{id}/signedurl")
+    fun getDocumentAsSignedURL(
+        @PathVariable("id") id: String,
+        response: HttpServletResponse,
+    ): String {
+        logger.debug("getDocumentAsSignedURL requested with id {}", id)
+
+        return documentService.getDocumentAsSignedUrl(id)
     }
 
     @PostMapping

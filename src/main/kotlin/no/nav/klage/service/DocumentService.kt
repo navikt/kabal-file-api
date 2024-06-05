@@ -1,44 +1,61 @@
 package no.nav.klage.service
 
+import com.google.cloud.storage.Blob
 import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
-import com.google.cloud.storage.StorageOptions
+import com.google.cloud.storage.Storage
 import no.nav.klage.getLogger
+import no.nav.klage.getSecureLogger
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.core.io.ByteArrayResource
-
-import org.springframework.core.io.Resource
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import java.io.FileNotFoundException
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 @Service
-class DocumentService {
+class DocumentService(
+    private val gcsStorage: Storage,
+    @Value("\${GCS_BUCKET}")
+    private val bucket: String,
+) {
 
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
+
+        private val secureLogger = getSecureLogger()
     }
 
-    @Value("\${GCS_BUCKET}")
-    private lateinit var bucket: String
-
-    fun getDocumentAsResource(id: String): Resource {
+    fun getDocumentAsBlob(id: String): Blob {
         logger.debug("Getting document with id {}", id)
 
-        val blob = getGcsStorage().get(bucket, id.toPath())
+        val blob = gcsStorage.get(bucket, id.toPath())
+
         if (blob == null || !blob.exists()) {
             logger.warn("Document not found: {}", id)
             throw FileNotFoundException()
         }
 
-        return ByteArrayResource(blob.getContent())
+        return blob
+    }
+
+    fun getDocumentAsSignedUrl(id: String): String {
+        logger.debug("Getting document as signed URL with id {}", id)
+
+        val blob = gcsStorage.get(bucket, id.toPath())
+
+        if (blob == null || !blob.exists()) {
+            logger.warn("Document not found: {}", id)
+            throw FileNotFoundException()
+        }
+
+        return blob.signUrl(1, TimeUnit.MINUTES).toExternalForm()
     }
 
     fun deleteDocument(id: String): Boolean {
         logger.debug("Deleting document with id {}", id)
-        return getGcsStorage().delete(BlobId.of(bucket, id.toPath())).also {
+        return gcsStorage.delete(BlobId.of(bucket, id.toPath())).also {
             if (it) {
                 logger.debug("Document was deleted.")
             } else {
@@ -52,8 +69,10 @@ class DocumentService {
 
         val id = UUID.randomUUID().toString()
 
-        val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath())).build()
-        getGcsStorage().create(blobInfo, file.bytes).exists()
+        val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath()))
+            .setContentType(file.contentType)
+            .build()
+        gcsStorage.create(blobInfo, file.inputStream).exists()
 
         logger.debug("Document saved, and id is {}", id)
 
@@ -61,6 +80,4 @@ class DocumentService {
     }
 
     private fun String.toPath() = "document/$this"
-
-    private fun getGcsStorage() = StorageOptions.getDefaultInstance().service
 }

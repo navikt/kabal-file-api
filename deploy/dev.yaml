@@ -1,0 +1,8 @@
+buckets:
+  - kabal-files-dev
+
+envs:
+  - name: JAVA_TOOL_OPTIONS
+    value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+  - name: GCS_BUCKET
+    value: kabal-files-dev
