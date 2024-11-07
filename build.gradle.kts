@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val gcsVersion = "2.36.1"
 val logstashVersion = "8.0"
-val tokenValidationVersion = "5.0.5"
+val tokenValidationVersion = "5.0.10"
 val googleCloudVersion = "5.8.0"
 
 repositories {
