@@ -5,8 +5,8 @@ spring:
     banner-mode: OFF
   servlet:
     multipart:
-      max-request-size: 256MB
-      max-file-size: 256MB
+      max-request-size: 500MB
+      max-file-size: 500MB
 
 server:
   port: 7080
