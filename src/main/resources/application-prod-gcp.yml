@@ -1,0 +1,5 @@
+allowed-origins: >
+  https://kabal.intern.nav.no,
+  https://kabin.intern.nav.no,
+  https://kabal.ansatt.nav.no,
+  https://kabin.ansatt.nav.no

@@ -6,3 +6,5 @@ envs:
     value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
   - name: GCS_BUCKET
     value: kabal-files-dev
+
+springProfile: dev-gcp
