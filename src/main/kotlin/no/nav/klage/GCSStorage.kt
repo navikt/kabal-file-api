@@ -16,6 +16,8 @@ class GCSStorage(
     val gcsCredentials: String,
     @Value("\${GCS_BUCKET}")
     private val bucket: String,
+    @Value("\${allowed-origins}")
+    private val allowedOrigins: List<String>,
 ) {
 
     @Bean
@@ -27,13 +29,9 @@ class GCSStorage(
 
         val cors: Cors =
             Cors.newBuilder()
-                .setOrigins(
-                    listOf(
-                        Cors.Origin.of("https://kabal.intern.dev.nav.no"),
-                    )
-                )
+                .setOrigins(allowedOrigins.map { Cors.Origin.of(it) })
                 .setMethods(listOf(HttpMethod.GET))
-                .setResponseHeaders(listOf("Content-Type"))
+                .setResponseHeaders(listOf("*"))
                 .setMaxAgeSeconds(3600)
                 .build()
 
