@@ -1,8 +1,8 @@
-allowed-origins:
-  - https://kabal.intern.dev.nav.no
-  - https://kabin.intern.dev.nav.no
-  - https://kabal.ansatt.dev.nav.no
-  - https://kabin.ansatt.dev.nav.no
-  - http://localhost:8061
-  - http://localhost:8063
-  - http://localhost:8080
+allowed-origins: >
+  https://kabal.intern.dev.nav.no,
+  https://kabin.intern.dev.nav.no,
+  https://kabal.ansatt.dev.nav.no,
+  https://kabin.ansatt.dev.nav.no,
+  http://localhost:8061,
+  http://localhost:8063,
+  http://localhost:8080
