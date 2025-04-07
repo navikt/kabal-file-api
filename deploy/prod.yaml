@@ -4,3 +4,5 @@ buckets:
 envs:
   - name: GCS_BUCKET
     value: kabal-files-production
+
+springProfile: prod-gcp
