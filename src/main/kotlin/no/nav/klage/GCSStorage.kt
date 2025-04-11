@@ -1,20 +1,19 @@
 package no.nav.klage
 
 import com.google.auth.oauth2.GoogleCredentials
-import com.google.cloud.storage.Cors
-import com.google.cloud.storage.HttpMethod
-import com.google.cloud.storage.Storage
-import com.google.cloud.storage.StorageOptions
+import com.google.cloud.storage.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 
 
 @Configuration
 class GCSStorage(
     @Value("\${GCS_CREDENTIALS}")
     val gcsCredentials: String,
-    @Value("\${GCS_BUCKET}")
+    @Value("\${bucket}")
     private val bucket: String,
     @Value("\${allowed-origins}")
     private val allowedOrigins: List<String>,
@@ -37,7 +36,17 @@ class GCSStorage(
 
         val bucket = storage.get(bucket)
 
-        bucket.toBuilder().setCors(listOf(cors)).build().update()
+        bucket.toBuilder()
+            .setLocation("europe-north1")
+            .setSoftDeletePolicy(
+                BucketInfo.SoftDeletePolicy.newBuilder()
+                    .setRetentionDuration(Duration.of(7, ChronoUnit.DAYS))
+                    .build()
+            )
+            .setStorageClass(StorageClass.STANDARD)
+            .setCors(listOf(cors))
+            .build()
+            .update()
 
         return storage
     }

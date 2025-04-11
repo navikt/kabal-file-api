@@ -6,3 +6,5 @@ allowed-origins: >
   http://localhost:8061,
   http://localhost:8063,
   http://localhost:8080
+
+bucket: kabal-files-dev

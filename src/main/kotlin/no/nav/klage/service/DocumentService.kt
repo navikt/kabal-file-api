@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
 @Service
 class DocumentService(
     private val gcsStorage: Storage,
-    @Value("\${GCS_BUCKET}")
+    @Value("\${bucket}")
     private val bucket: String,
 ) {
 
