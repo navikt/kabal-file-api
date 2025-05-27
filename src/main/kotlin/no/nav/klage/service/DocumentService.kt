@@ -5,7 +5,6 @@ import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
 import no.nav.klage.getLogger
-import no.nav.klage.getSecureLogger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
@@ -23,8 +22,6 @@ class DocumentService(
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
-
-        private val secureLogger = getSecureLogger()
     }
 
     fun getDocumentAsBlob(id: String): Blob {

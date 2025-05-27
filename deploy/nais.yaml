@@ -47,8 +47,6 @@ spec:
   prometheus:
     enabled: true
     path: /internal/prometheus
-  secureLogs:
-    enabled: true
   webproxy: true
   envFrom:
     - secret: gcs-credentials
