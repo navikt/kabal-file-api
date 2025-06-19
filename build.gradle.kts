@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val gcsVersion = "2.36.1"
 val logstashVersion = "8.1"
 val tokenValidationVersion = "5.0.29"
-val googleCloudVersion = "6.2.1"
+val googleCloudVersion = "6.2.2"
 
 repositories {
     mavenCentral()
@@ -13,7 +13,7 @@ plugins {
     val kotlinVersion = "2.1.21"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "3.5.0"
+    id("org.springframework.boot") version "3.5.2"
     id("io.spring.dependency-management") version "1.1.7"
     idea
 }
