@@ -1,6 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val gcsVersion = "2.36.1"
 val logstashVersion = "8.1"
 val tokenValidationVersion = "5.0.30"
 val googleCloudVersion = "6.2.2"
@@ -48,9 +48,9 @@ idea {
 java.sourceCompatibility = JavaVersion.VERSION_17
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions{
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
         freeCompilerArgs = listOf("-Xjsr305=strict")
-        jvmTarget = "17"
     }
 }
 
