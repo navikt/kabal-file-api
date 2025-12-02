@@ -1,4 +1,4 @@
-name: Deploy (dev -> e2e -> prod)
+name: Deploy (dev -> prod)
 
 on:
   push:
