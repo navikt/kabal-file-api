@@ -1,19 +1,19 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val logstashVersion = "8.1"
+val logstashVersion = "9.0"
 val tokenValidationVersion = "5.0.30"
-val googleCloudVersion = "7.3.0"
+val googleCloudVersion = "7.4.1"
 
 repositories {
     mavenCentral()
 }
 
 plugins {
-    val kotlinVersion = "2.2.20"
+    val kotlinVersion = "2.2.21"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "3.5.8"
+    id("org.springframework.boot") version "4.0.0"
     id("io.spring.dependency-management") version "1.1.7"
     idea
 }
