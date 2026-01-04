@@ -1,0 +1,22 @@
+name: Manual build and deploy in dev
+
+run-name: Manual build and deploy of ${{ github.ref_name }} to dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      e2e-tests:
+        type: string
+        default: 'kabal'
+        description: 'Comma-separated list of e2e tests to run. Use "none" to skip all e2e tests.'
+
+jobs:
+  build:
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: navikt/klage-workflows/.github/workflows/build-deploy-feature.yaml@main
+    secrets: inherit
+    with:
+      e2e-tests: ${{ inputs.e2e-tests }}

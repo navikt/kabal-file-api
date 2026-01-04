@@ -1,0 +1,13 @@
+name: Manual deploy of main to prod
+# main needs to have been deployed previously
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-to-prod:
+    permissions:
+      contents: write
+      id-token: write
+    uses: navikt/klage-workflows/.github/workflows/deploy-manually-to-prod.yaml@main
+    secrets: inherit

@@ -1,0 +1,26 @@
+name: Manual deployment of previous release to dev
+
+# run-name kan kun referere til github og inputs kontekstene
+run-name: Manual deploy of ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}} to ${{inputs.nav-environment}}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref_name:
+        description: 'Image tag (matching Git tag) from previous release.'
+        required: true
+        type: string
+
+jobs:
+  deploy-env:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Deploy to environment
+        uses: navikt/klage-workflows/.github/actions/deploy-nais-app-with-custom-checkout@main
+        with:
+          build-tag: ${{(contains(fromJson('["tag", "branch"]'), github.ref_type) && !contains(fromJson('["main"]'), github.ref_name)) && github.ref_name || inputs.ref_name}}
+          nav-cluster: dev-gcp
+          nav-environment: dev

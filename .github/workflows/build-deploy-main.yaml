@@ -1,0 +1,20 @@
+name: Build, deploy dev, deploy prod
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/dependabot.yaml'
+
+jobs:
+  build:
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+      id-token: write
+    uses: navikt/klage-workflows/.github/workflows/build-deploy-main.yaml@main
+    with:
+      e2e-tests: 'kabal'
+    secrets: inherit
