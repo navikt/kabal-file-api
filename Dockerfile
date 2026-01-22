@@ -1,4 +1,4 @@
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-21@sha256:3f5c4ae4fd1acc7aeab00d879a131af2816bd6b4f98fde8c1d01dc3e6f8d65ea
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-21@sha256:3377a82205d2ee2e1367ca72f13048a1292e086f3b9a94bf84e0725cadba6c4b
 ENV TZ="Europe/Oslo"
 COPY build/libs/app.jar app.jar
 CMD ["-jar","app.jar"]
