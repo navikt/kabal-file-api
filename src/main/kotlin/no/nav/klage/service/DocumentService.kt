@@ -47,7 +47,10 @@ class DocumentService(
             throw FileNotFoundException()
         }
 
-        return blob.signUrl(1, TimeUnit.MINUTES).toExternalForm()
+        return blob.signUrl(
+            1, TimeUnit.MINUTES,
+            Storage.SignUrlOption.withQueryParams(mapOf("response-content-disposition" to "inline"))
+        ).toExternalForm()
     }
 
     fun deleteDocument(id: String): Boolean {
