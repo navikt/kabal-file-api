@@ -38,11 +38,20 @@ class KabalController(private val documentService: DocumentService) {
     @GetMapping("{id}/signedurl")
     fun getDocumentAsSignedURL(
         @PathVariable("id") id: String,
-        response: HttpServletResponse,
     ): String {
         logger.debug("getDocumentAsSignedURL requested with id {}", id)
 
-        return documentService.getDocumentAsSignedUrl(id)
+        return documentService.getDocumentAsSignedUrl(id = id)
+    }
+
+    @PostMapping("{id}/signedurl")
+    fun getDocumentAsSignedURLAndHeaders(
+        @PathVariable("id") id: String,
+        @RequestBody request: SignedUrlRequest,
+    ): String {
+        logger.debug("getDocumentAsSignedURLAndHeaders requested with id {}", id)
+
+        return documentService.getDocumentAsSignedUrl(id = id, headers = request.headers)
     }
 
     @PostMapping
@@ -61,4 +70,6 @@ class KabalController(private val documentService: DocumentService) {
     }
 
     data class DocumentCreatedResponse(val id: String)
+
+    data class SignedUrlRequest(val headers: Map<String, String> = emptyMap())
 }

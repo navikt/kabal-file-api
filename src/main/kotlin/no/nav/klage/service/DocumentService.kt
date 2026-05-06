@@ -37,7 +37,7 @@ class DocumentService(
         return blob
     }
 
-    fun getDocumentAsSignedUrl(id: String): String {
+    fun getDocumentAsSignedUrl(id: String, headers: Map<String, String> = emptyMap()): String {
         logger.debug("Getting document as signed URL with id {}", id)
 
         val blob = gcsStorage.get(bucket, id.toPath())
@@ -47,9 +47,11 @@ class DocumentService(
             throw FileNotFoundException()
         }
 
+        val queryParams = headers.map { (key, value) -> "response-$key" to value }.toMap()
+
         return blob.signUrl(
             1, TimeUnit.MINUTES,
-            Storage.SignUrlOption.withQueryParams(mapOf("response-content-disposition" to "inline"))
+            Storage.SignUrlOption.withQueryParams(queryParams)
         ).toExternalForm()
     }
 
