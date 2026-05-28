@@ -28,6 +28,11 @@ dependencies {
     implementation("com.google.cloud:spring-cloud-gcp-starter-storage:$googleCloudVersion")
     implementation("org.projectreactor:reactor-spring:1.0.1.RELEASE")
 
+    //Fix vulnerabilities, while waiting for fix in Spring Boot.
+    implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.22")
+    implementation("io.netty:netty-codec-http:4.2.14.Final")
+    implementation("io.netty:netty-resolver-dns:4.2.14.Final")
+
     implementation("ch.qos.logback:logback-classic")
     implementation("net.logstash.logback:logstash-logback-encoder:$logstashVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
