@@ -61,7 +61,7 @@ class DocumentService(
             if (it) {
                 logger.debug("Document was deleted.")
             } else {
-                logger.debug("Document was not found and could not be deleted.")
+                logger.debug("Document not found, nothing to delete.")
             }
         }
     }
