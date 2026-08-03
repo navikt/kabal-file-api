@@ -3,7 +3,10 @@ package no.nav.klage.controller
 
 import jakarta.servlet.http.HttpServletResponse
 import no.nav.klage.getLogger
+import no.nav.klage.service.DocumentMetadata
 import no.nav.klage.service.DocumentService
+import no.nav.klage.service.ProcessResult
+import no.nav.klage.service.UploadPostPolicy
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -63,6 +66,24 @@ class KabalController(private val documentService: DocumentService) {
         return ResponseEntity(DocumentCreatedResponse(result), HttpStatus.CREATED)
     }
 
+    @PostMapping("uploadpolicy")
+    fun createUploadPolicy(@RequestBody request: UploadUrlRequest): UploadPostPolicy {
+        logger.debug("Create upload policy requested for content type {}", request.contentType)
+        return documentService.createUploadPostPolicy(request.contentType)
+    }
+
+    @GetMapping("{id}/metadata")
+    fun getDocumentMetadata(@PathVariable("id") id: String): DocumentMetadata {
+        logger.debug("Get document metadata requested with id {}", id)
+        return documentService.getDocumentMetadata(id)
+    }
+
+    @PostMapping("{id}/process")
+    fun processDocument(@PathVariable("id") id: String): ProcessResult {
+        logger.debug("Process document requested with id {}", id)
+        return documentService.processDocument(id)
+    }
+
     @DeleteMapping("{id}")
     fun deleteDocument(@PathVariable("id") id: String): Boolean {
         logger.debug("Delete document requested.")
@@ -72,4 +93,6 @@ class KabalController(private val documentService: DocumentService) {
     data class DocumentCreatedResponse(val id: String)
 
     data class SignedUrlRequest(val headers: Map<String, String> = emptyMap())
+
+    data class UploadUrlRequest(val contentType: String)
 }

@@ -34,3 +34,5 @@ management:
         enabled: true
   tracing:
     enabled: false
+
+CLAM_AV_URL: http://clamav.nais-system/api/v2/scan

@@ -24,6 +24,11 @@ spec:
       rules:
         - application: kabal-api
         - application: kabal-document
+        - application: kabin-api
+    outbound:
+      rules:
+        - application: clamav
+          namespace: nais-system
   liveness:
     path: /internal/health
     initialDelay: 20
