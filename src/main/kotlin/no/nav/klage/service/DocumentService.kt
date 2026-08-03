@@ -48,8 +48,6 @@ class DocumentService(
             MediaType.IMAGE_JPEG_VALUE,
             MediaType.IMAGE_PNG_VALUE,
             "image/tiff",
-            "image/heic",
-            "image/heif",
         )
     }
 

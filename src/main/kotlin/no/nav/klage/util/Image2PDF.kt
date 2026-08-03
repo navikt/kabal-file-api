@@ -22,20 +22,16 @@ import kotlin.math.min
  * supported image, converts it into a single-page A4 PDF in place. Files that already are PDFs pass
  * through unchanged. Any other type is rejected.
  *
- * Supported images: JPEG, PNG, TIFF (decoded via ImageIO) and HEIC/HEIF (decoded via ImageMagick,
- * since HEIC cannot be decoded in pure Java).
+ * Supported images: JPEG, PNG and TIFF (decoded via ImageIO).
  */
 @Component
-class Image2PDF(
-    private val imageMagickClient: ImageMagickClient,
-) {
+class Image2PDF {
 
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
 
         private const val PDF = MediaType.APPLICATION_PDF_VALUE
-        private val HEIF_TYPES = setOf("image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence")
         private val IMAGEIO_TYPES = setOf(
             MediaType.IMAGE_JPEG_VALUE,
             MediaType.IMAGE_PNG_VALUE,
@@ -65,7 +61,7 @@ class Image2PDF(
             )
         }
 
-        if (detectedType !in IMAGEIO_TYPES && detectedType !in HEIF_TYPES) {
+        if (detectedType !in IMAGEIO_TYPES) {
             val exception = AttachmentCouldNotBeConvertedException()
             logger.warn("User tried to upload an unsupported file type: $detectedType", exception)
             throw exception
@@ -73,19 +69,7 @@ class Image2PDF(
 
         logger.debug("Converting file of type {} to PDF", detectedType)
 
-        //HEIC/HEIF can't be decoded by ImageIO, so first convert it to a PNG via ImageMagick.
-        val (decodableFile, tempFileToClean) = if (detectedType in HEIF_TYPES) {
-            val png = imageMagickClient.convertHeicToPng(file)
-            png to png
-        } else {
-            file to null
-        }
-
-        try {
-            embedImageInPDF(source = decodableFile, target = file)
-        } finally {
-            tempFileToClean?.delete()
-        }
+        embedImageInPDF(source = file, target = file)
 
         return ConversionResult(
             file = file,
