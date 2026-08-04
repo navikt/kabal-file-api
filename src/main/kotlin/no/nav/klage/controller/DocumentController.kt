@@ -3,10 +3,7 @@ package no.nav.klage.controller
 
 import jakarta.servlet.http.HttpServletResponse
 import no.nav.klage.getLogger
-import no.nav.klage.service.DocumentMetadata
-import no.nav.klage.service.DocumentService
-import no.nav.klage.service.ProcessResult
-import no.nav.klage.service.UploadPostPolicy
+import no.nav.klage.service.*
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -78,10 +75,19 @@ class KabalController(private val documentService: DocumentService) {
         return documentService.getDocumentMetadata(id)
     }
 
-    @PostMapping("{id}/process")
-    fun processDocument(@PathVariable("id") id: String): ProcessResult {
-        logger.debug("Process document requested with id {}", id)
-        return documentService.processDocument(id)
+    @PostMapping("{id}/scan")
+    fun scanDocument(@PathVariable("id") id: String): ScanResult {
+        logger.debug("Scan document requested with id {}", id)
+        return documentService.scanDocument(id)
+    }
+
+    @PostMapping("{id}/convert")
+    fun convertDocument(
+        @PathVariable("id") id: String,
+        @RequestBody request: ConvertRequest,
+    ): ConvertResult {
+        logger.debug("Convert document requested with id {}", id)
+        return documentService.convertDocument(id = id, scannedGeneration = request.scannedGeneration)
     }
 
     @DeleteMapping("{id}")
@@ -95,4 +101,6 @@ class KabalController(private val documentService: DocumentService) {
     data class SignedUrlRequest(val headers: Map<String, String> = emptyMap())
 
     data class UploadUrlRequest(val contentType: String)
+
+    data class ConvertRequest(val scannedGeneration: Long)
 }

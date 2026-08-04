@@ -33,7 +33,6 @@ class DocumentService(
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
 
-        private const val PROCESS_DURATION_TIMER = "kabalfileapi.document.process.duration"
         private const val VIRUSCHECK_DURATION_TIMER = "kabalfileapi.document.viruscheck.duration"
         private const val CONVERSION_DURATION_TIMER = "kabalfileapi.document.conversion.duration"
         private const val SIZE_SUMMARY = "kabalfileapi.document.size.bytes"
@@ -152,43 +151,13 @@ class DocumentService(
         }
     }
 
-    fun processDocument(id: String): ProcessResult {
-        logger.debug("Processing (scan + convert) document with id {}", id)
+    fun scanDocument(id: String): ScanResult {
+        logger.debug("Scanning document with id {}", id)
 
-        val (result, processDuration) = measureDuration {
-            processDocumentInternal(id)
-        }
-
-        meterRegistry.recordTimer(
-            PROCESS_DURATION_TIMER,
-            processDuration,
-            "fileType", result.fileType,
-            "outcome", result.outcome,
-        )
-        meterRegistry.recordDistribution(
-            SIZE_SUMMARY,
-            (result.processResult.size ?: 0L).toDouble(),
-            "bytes",
-            "fileType", result.fileType,
-            "outcome", result.outcome,
-        )
-
-        return result.processResult
-    }
-
-    private data class ProcessInternalResult(
-        val processResult: ProcessResult,
-        val fileType: String,
-        val outcome: String,
-    )
-
-    private fun processDocumentInternal(id: String): ProcessInternalResult {
         val blob = getBlobOrThrow(id)
+        val declaredContentType = blob.contentType ?: "unknown"
 
-        //Declared content type from upload; refined to the actually detected type once we convert.
-        var fileType = blob.contentType ?: "unknown"
-
-        val tempFile = Files.createTempFile("process-", null)
+        val tempFile = Files.createTempFile("scan-", null)
         try {
             blob.downloadTo(tempFile)
 
@@ -196,20 +165,62 @@ class DocumentService(
             val (hasVirus, virusCheckDuration) = measureDuration {
                 clamAvClient.hasVirus(tempFile.toFile())
             }
-            meterRegistry.recordTimer(VIRUSCHECK_DURATION_TIMER, virusCheckDuration, "fileType", fileType)
+            meterRegistry.recordTimer(
+                VIRUSCHECK_DURATION_TIMER,
+                virusCheckDuration,
+                "fileType", declaredContentType,
+                "outcome", if (hasVirus) "virus" else "clean",
+            )
 
             if (hasVirus) {
-                return ProcessInternalResult(
-                    processResult = ProcessResult(
-                        hasVirus = true,
-                        size = blob.size,
-                        contentType = blob.contentType,
-                        wasConverted = false,
-                    ),
-                    fileType = fileType,
-                    outcome = "virus",
+                return ScanResult(
+                    hasVirus = true,
+                    size = blob.size,
+                    contentType = declaredContentType,
+                    requiresConversion = false,
+                    generation = blob.generation,
                 )
             }
+
+            //Rejects unsupported types here, so the client knows before it announces a conversion step.
+            val fileTypeInfo = image2PDF.inspect(tempFile.toFile())
+
+            return ScanResult(
+                hasVirus = false,
+                size = blob.size,
+                contentType = fileTypeInfo.detectedContentType,
+                requiresConversion = fileTypeInfo.requiresConversion,
+                generation = blob.generation,
+            )
+        } finally {
+            Files.deleteIfExists(tempFile)
+        }
+    }
+
+    /**
+     * [scannedGeneration] is the generation returned by [scanDocument]. The upload policy stays valid
+     * for a while, so the object could have been replaced after it was scanned; converting a
+     * different generation than the one we scanned would let unscanned bytes through.
+     */
+    fun convertDocument(id: String, scannedGeneration: Long): ConvertResult {
+        logger.debug("Converting document with id {}", id)
+
+        val blob = getBlobOrThrow(id)
+
+        if (blob.generation != scannedGeneration) {
+            logger.warn("Document {} was replaced after it was scanned, refusing to convert it.", id)
+            throw ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Document was replaced after it was scanned. Please upload it again.",
+            )
+        }
+
+        //Declared content type from upload; refined to the actually detected type once we convert.
+        var fileType = blob.contentType ?: "unknown"
+
+        val tempFile = Files.createTempFile("convert-", null)
+        try {
+            blob.downloadTo(tempFile)
 
             val (conversion, conversionDuration) = measureDuration {
                 image2PDF.convertIfImage(tempFile.toFile())
@@ -223,33 +234,57 @@ class DocumentService(
             )
 
             if (!conversion.wasConverted) {
-                return ProcessInternalResult(
-                    processResult = ProcessResult(
-                        hasVirus = false,
-                        size = blob.size,
-                        contentType = conversion.contentType,
-                        wasConverted = false,
-                    ),
-                    fileType = fileType,
-                    outcome = "passthrough",
+                meterRegistry.recordDistribution(
+                    SIZE_SUMMARY,
+                    blob.size.toDouble(),
+                    "bytes",
+                    "fileType", fileType,
+                    "outcome", "passthrough",
+                )
+                return ConvertResult(
+                    size = blob.size,
+                    contentType = conversion.contentType,
+                    wasConverted = false,
                 )
             }
 
-            //Overwrite the same object with the generated PDF, streamed from disk.
+            //Overwrite the same object with the generated PDF, streamed from disk. The generation
+            //precondition makes the write fail instead of clobbering the object if it was deleted or
+            //re-uploaded while we were converting.
             val pdfBlobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath()))
                 .setContentType(conversion.contentType)
                 .build()
-            gcsStorage.createFrom(pdfBlobInfo, tempFile)
+            try {
+                gcsStorage.createFrom(
+                    pdfBlobInfo,
+                    tempFile,
+                    Storage.BlobWriteOption.generationMatch(blob.generation),
+                )
+            } catch (e: StorageException) {
+                if (e.code == HttpStatus.PRECONDITION_FAILED.value()) {
+                    logger.warn("Document {} was modified while being converted, conversion discarded.", id)
+                    throw ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Document was modified while being converted. Please try again.",
+                        e,
+                    )
+                }
+                throw e
+            }
 
-            return ProcessInternalResult(
-                processResult = ProcessResult(
-                    hasVirus = false,
-                    size = Files.size(tempFile),
-                    contentType = conversion.contentType,
-                    wasConverted = true,
-                ),
-                fileType = fileType,
-                outcome = "converted",
+            val convertedSize = Files.size(tempFile)
+            meterRegistry.recordDistribution(
+                SIZE_SUMMARY,
+                convertedSize.toDouble(),
+                "bytes",
+                "fileType", fileType,
+                "outcome", "converted",
+            )
+
+            return ConvertResult(
+                size = convertedSize,
+                contentType = conversion.contentType,
+                wasConverted = true,
             )
         } finally {
             Files.deleteIfExists(tempFile)
@@ -281,8 +316,15 @@ data class DocumentMetadata(
     val contentType: String?,
 )
 
-data class ProcessResult(
+data class ScanResult(
     val hasVirus: Boolean,
+    val size: Long?,
+    val contentType: String?,
+    val requiresConversion: Boolean,
+    val generation: Long,
+)
+
+data class ConvertResult(
     val size: Long?,
     val contentType: String?,
     val wasConverted: Boolean,

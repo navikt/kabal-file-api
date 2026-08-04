@@ -48,6 +48,30 @@ class Image2PDF {
         val originalContentType: String,
     )
 
+    data class FileTypeInfo(
+        val detectedContentType: String,
+        val requiresConversion: Boolean,
+    )
+
+    /**
+     * Determines the actual type of [file] and whether it has to be converted to PDF, rejecting any
+     * type we cannot turn into a PDF. Lets the caller know up front what work is coming.
+     */
+    fun inspect(file: File): FileTypeInfo {
+        val detectedType = detectContentType(file)
+
+        if (PDF != detectedType && detectedType !in IMAGEIO_TYPES) {
+            val exception = AttachmentCouldNotBeConvertedException()
+            logger.warn("User tried to upload an unsupported file type: $detectedType", exception)
+            throw exception
+        }
+
+        return FileTypeInfo(
+            detectedContentType = detectedType,
+            requiresConversion = PDF != detectedType,
+        )
+    }
+
     fun convertIfImage(file: File): ConversionResult {
         val detectedType = detectContentType(file)
 
