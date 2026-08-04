@@ -1,81 +1,70 @@
 package no.nav.klage.util
 
-import no.nav.klage.getLogger
 import org.apache.pdfbox.pdmodel.common.PDRectangle
-import java.awt.Dimension
-import java.awt.Graphics2D
-import java.awt.Image
-import java.awt.geom.AffineTransform
-import java.awt.image.AffineTransformOp
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 object ImageUtils {
 
-    private val logger = getLogger(javaClass)
+    /**
+     * Upper bound on the resolution we keep when embedding an image in an A4 page. Images with a
+     * higher effective resolution are downscaled; anything at or below this is embedded untouched.
+     */
+    const val MAX_DPI = 300
+
+    private const val PDF_USER_SPACE_DPI = 72f
+
+    private val maxPixelWidth = (PDRectangle.A4.width / PDF_USER_SPACE_DPI * MAX_DPI).roundToInt()
+    private val maxPixelHeight = (PDRectangle.A4.height / PDF_USER_SPACE_DPI * MAX_DPI).roundToInt()
 
     /**
-     * Rotates landscape images to portrait and scales the image down so it fits within an A4 page,
-     * preserving aspect ratio. Images already within A4 bounds are returned unchanged.
+     * Returns the image unchanged unless it exceeds [MAX_DPI] when rendered on a full A4 page, in
+     * which case it is downscaled (preserving aspect ratio) using high quality interpolation.
+     *
+     * The image is never resampled down to the size of an A4 page in points; fitting to the page is
+     * done through the PDF placement matrix, so the full pixel data is preserved.
      */
-    fun scaleToA4(image: BufferedImage): BufferedImage {
-        val A4 = PDRectangle.A4
-        val rotated = rotatePortrait(image)
-        val pdfPageDim = Dimension(A4.width.toInt(), A4.height.toInt())
-        val origDim = Dimension(rotated.width, rotated.height)
-        val newDim = getScaledDimension(origDim, pdfPageDim)
-        return if (newDim == origDim) {
-            rotated
-        } else {
-            scaleDown(rotated, newDim)
-        }
-    }
+    fun capResolution(image: BufferedImage): BufferedImage {
+        //Compare against the A4 bounds in the same orientation as the image, so a landscape image is
+        //allowed just as many pixels as its rotated portrait equivalent.
+        val boundLong = max(maxPixelWidth, maxPixelHeight)
+        val boundShort = min(maxPixelWidth, maxPixelHeight)
+        val boundWidth = if (image.width >= image.height) boundLong else boundShort
+        val boundHeight = if (image.width >= image.height) boundShort else boundLong
 
-    private fun rotatePortrait(image: BufferedImage): BufferedImage {
-        if (image.height >= image.width) {
-            return image
-        }
-        if (image.type == BufferedImage.TYPE_CUSTOM) {
-            logger.warn("Cannot not rotate image with unknown type.")
-            return image
-        }
-        var rotatedImage = BufferedImage(image.height, image.width, image.type)
-        val transform = AffineTransform()
-        transform.rotate(
-            Math.toRadians(90.0),
-            image.height / 2f.toDouble(),
-            image.height / 2f.toDouble()
+        val scale = min(
+            boundWidth.toDouble() / image.width,
+            boundHeight.toDouble() / image.height,
         )
-        val op = AffineTransformOp(transform, AffineTransformOp.TYPE_BILINEAR)
-        rotatedImage = op.filter(image, rotatedImage)
-        return rotatedImage
+        if (scale >= 1.0) {
+            return image
+        }
+
+        return resize(
+            image = image,
+            newWidth = max(1, (image.width * scale).roundToInt()),
+            newHeight = max(1, (image.height * scale).roundToInt()),
+        )
     }
 
-    private fun getScaledDimension(imgSize: Dimension, a4: Dimension): Dimension {
-        val originalWidth = imgSize.width
-        val originalHeight = imgSize.height
-        val a4Width = a4.width
-        val a4Height = a4.height
-        var newWidth = originalWidth
-        var newHeight = originalHeight
-        if (originalWidth > a4Width) {
-            newWidth = a4Width
-            newHeight = newWidth * originalHeight / originalWidth
+    private fun resize(image: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage {
+        val target = BufferedImage(
+            newWidth,
+            newHeight,
+            if (image.colorModel.hasAlpha()) BufferedImage.TYPE_INT_ARGB else BufferedImage.TYPE_INT_RGB
+        )
+        val g = target.createGraphics()
+        try {
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            g.drawImage(image, 0, 0, newWidth, newHeight, null)
+        } finally {
+            g.dispose()
         }
-        if (newHeight > a4Height) {
-            newHeight = a4Height
-            newWidth = newHeight * originalWidth / originalHeight
-        }
-        return Dimension(newWidth, newHeight)
-    }
-
-    private fun scaleDown(origImage: BufferedImage, newDim: Dimension): BufferedImage {
-        val newWidth = newDim.getWidth().toInt()
-        val newHeight = newDim.getHeight().toInt()
-        val tempImg = origImage.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
-        val scaledImg = BufferedImage(newWidth, newHeight, BufferedImage.TYPE_3BYTE_BGR)
-        val g = scaledImg.graphics as Graphics2D
-        g.drawImage(tempImg, 0, 0, null)
-        g.dispose()
-        return scaledImg
+        return target
     }
 }

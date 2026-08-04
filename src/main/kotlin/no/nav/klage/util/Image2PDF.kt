@@ -6,13 +6,16 @@ import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.common.PDRectangle
+import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
+import org.apache.pdfbox.util.Matrix
 import org.apache.tika.Tika
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.util.unit.DataSize
 import org.springframework.util.unit.DataUnit
+import java.awt.geom.AffineTransform
 import java.io.File
 import javax.imageio.ImageIO
 import kotlin.math.min
@@ -113,15 +116,14 @@ class Image2PDF {
 
     private fun embedImageInPDF(source: File, target: File) {
         try {
-            val image = ImageIO.read(source) ?: throw AttachmentCouldNotBeConvertedException()
-            val scaledImage = ImageUtils.scaleToA4(image)
-
             PDDocument().use { doc ->
+                val xImage = createImageXObject(doc, source)
+
                 val page = PDPage(A4)
                 doc.addPage(page)
-                val xImage: PDImageXObject = LosslessFactory.createFromImage(doc, scaledImage)
+
                 PDPageContentStream(doc, page).use { contentStream ->
-                    contentStream.drawImage(xImage, A4.lowerLeftX, A4.lowerLeftY)
+                    contentStream.drawImage(xImage, placementMatrix(xImage.width, xImage.height))
                 }
                 doc.save(target)
             }
@@ -130,5 +132,57 @@ class Image2PDF {
         } catch (ex: Exception) {
             throw RuntimeException("Conversion of attachment failed", ex)
         }
+    }
+
+    /**
+     * Embeds the image without needlessly degrading it: JPEGs are passed through byte for byte so the
+     * original DCT data is preserved, everything else is embedded losslessly (Flate) at its original
+     * resolution, capped at [ImageUtils.MAX_DPI].
+     */
+    private fun createImageXObject(doc: PDDocument, source: File): PDImageXObject {
+        if (MediaType.IMAGE_JPEG_VALUE == detectContentType(source)) {
+            try {
+                return source.inputStream().use { JPEGFactory.createFromStream(doc, it) }
+            } catch (ex: Exception) {
+                logger.debug("Could not embed JPEG as-is, falling back to re-encoding", ex)
+            }
+        }
+
+        val image = ImageIO.read(source) ?: throw AttachmentCouldNotBeConvertedException()
+        return LosslessFactory.createFromImage(doc, ImageUtils.capResolution(image))
+    }
+
+    /**
+     * Places the image on a portrait A4 page, scaled to fit and centered. Landscape images are rotated
+     * 90 degrees by the matrix rather than by resampling the pixels, which keeps the quality intact.
+     */
+    private fun placementMatrix(imageWidth: Int, imageHeight: Int): Matrix {
+        val rotate = imageWidth > imageHeight
+
+        //Width and height of the page area the image gets to occupy, in the image's own orientation.
+        val availableWidth = if (rotate) A4.height else A4.width
+        val availableHeight = if (rotate) A4.width else A4.height
+
+        val scale = min(availableWidth / imageWidth, availableHeight / imageHeight)
+        val drawWidth = imageWidth * scale
+        val drawHeight = imageHeight * scale
+
+        //Size actually taken up on the page once the rotation is applied.
+        val onPageWidth = if (rotate) drawHeight else drawWidth
+        val onPageHeight = if (rotate) drawWidth else drawHeight
+        val offsetX = (A4.width - onPageWidth) / 2
+        val offsetY = (A4.height - onPageHeight) / 2
+
+        val transform = AffineTransform()
+        if (rotate) {
+            //A clockwise 90 degree rotation moves the drawn box into negative y, so shift it back up
+            //by its rotated height before centering.
+            transform.translate(offsetX.toDouble(), (offsetY + onPageHeight).toDouble())
+            transform.rotate(Math.toRadians(-90.0))
+        } else {
+            transform.translate(offsetX.toDouble(), offsetY.toDouble())
+        }
+        transform.scale(drawWidth.toDouble(), drawHeight.toDouble())
+        return Matrix(transform)
     }
 }
