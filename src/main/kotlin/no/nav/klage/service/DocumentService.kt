@@ -3,11 +3,13 @@ package no.nav.klage.service
 import com.google.cloud.storage.*
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.klage.clients.clamav.ClamAvClient
+import no.nav.klage.config.AsyncConfiguration.Companion.DOCUMENT_DELETE_EXECUTOR
 import no.nav.klage.getLogger
 import no.nav.klage.util.Image2PDF
 import no.nav.klage.util.measureDuration
 import no.nav.klage.util.recordDistribution
 import no.nav.klage.util.recordTimer
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -17,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException
 import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.util.*
+import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
 @Service
@@ -25,6 +28,8 @@ class DocumentService(
     private val clamAvClient: ClamAvClient,
     private val image2PDF: Image2PDF,
     private val meterRegistry: MeterRegistry,
+    @Qualifier(DOCUMENT_DELETE_EXECUTOR)
+    private val documentDeleteExecutor: Executor,
     @Value($$"${bucket}")
     private val bucket: String,
 ) {
@@ -35,6 +40,8 @@ class DocumentService(
 
         private const val VIRUSCHECK_DURATION_TIMER = "kabalfileapi.document.viruscheck.duration"
         private const val CONVERSION_DURATION_TIMER = "kabalfileapi.document.conversion.duration"
+        private const val DELETE_DURATION_TIMER = "kabalfileapi.document.delete.duration"
+        private const val DELETE_FAILED_COUNTER = "kabalfileapi.document.delete.failed"
         private const val SIZE_SUMMARY = "kabalfileapi.document.size.bytes"
 
         //Enforced by GCS via the upload policy. Must not exceed Int.MAX_VALUE, since the
@@ -69,14 +76,36 @@ class DocumentService(
         ).toExternalForm()
     }
 
-    fun deleteDocument(id: String): Boolean {
-        logger.debug("Deleting document with id {}", id)
-        return gcsStorage.delete(BlobId.of(bucket, id.toPath())).also {
-            if (it) {
-                logger.debug("Document was deleted.")
-            } else {
-                logger.debug("Document not found, nothing to delete.")
+    /**
+     * Fire and forget: the caller gets a response as soon as the deletion is queued. Deleting the
+     * object in GCS takes a few hundred milliseconds, and no client has anything to do with the
+     * outcome, so it is done on a background thread. Failures are logged and counted.
+     */
+    fun deleteDocument(id: String) {
+        logger.debug("Queueing deletion of document with id {}", id)
+        documentDeleteExecutor.execute {
+            deleteDocumentInGCS(id)
+        }
+    }
+
+    private fun deleteDocumentInGCS(id: String) {
+        try {
+            val (deleted, duration) = measureDuration {
+                gcsStorage.delete(BlobId.of(bucket, id.toPath()))
             }
+            if (deleted) {
+                logger.debug("Document {} was deleted in {} ms.", id, duration.toMillis())
+            } else {
+                logger.debug("Document {} not found, nothing to delete.", id)
+            }
+            meterRegistry.recordTimer(
+                DELETE_DURATION_TIMER,
+                duration,
+                "outcome", if (deleted) "deleted" else "not_found",
+            )
+        } catch (e: Exception) {
+            logger.error("Could not delete document $id in GCS.", e)
+            meterRegistry.counter(DELETE_FAILED_COUNTER).increment()
         }
     }
 

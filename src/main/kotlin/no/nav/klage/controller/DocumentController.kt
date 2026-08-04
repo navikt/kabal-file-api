@@ -91,9 +91,10 @@ class KabalController(private val documentService: DocumentService) {
     }
 
     @DeleteMapping("{id}")
-    fun deleteDocument(@PathVariable("id") id: String): Boolean {
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    fun deleteDocument(@PathVariable("id") id: String) {
         logger.debug("Delete document requested.")
-        return documentService.deleteDocument(id)
+        documentService.deleteDocument(id)
     }
 
     data class DocumentCreatedResponse(val id: String)
