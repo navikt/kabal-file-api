@@ -133,14 +133,30 @@ class DocumentService(
     }
 
     /**
-     * The client must POST multipart/form-data to [UploadPostPolicy.url] with every entry of
-     * [UploadPostPolicy.fields] as a form field, and the file itself as the last field ("file").
+     * Creates one upload policy per entry in [contentTypes], in the same order. The client must POST
+     * multipart/form-data to [UploadPostPolicy.url] with every entry of [UploadPostPolicy.fields] as a
+     * form field, and the file itself as the last field ("file").
+     *
+     * GCS has no batch API for signed post policies, but the signing is done locally with our service
+     * account key, so this only saves the caller a round trip per document.
      */
-    fun createUploadPostPolicy(contentType: String): UploadPostPolicy {
-        if (contentType !in ALLOWED_UPLOAD_CONTENT_TYPES) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported content type: $contentType")
+    fun createUploadPostPolicies(contentTypes: List<String>): List<UploadPostPolicy> {
+        if (contentTypes.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "No content types provided")
         }
 
+        val unsupported = contentTypes.filter { it !in ALLOWED_UPLOAD_CONTENT_TYPES }.distinct()
+        if (unsupported.isNotEmpty()) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Unsupported content type(s): ${unsupported.joinToString()}"
+            )
+        }
+
+        return contentTypes.map { createUploadPostPolicy(contentType = it) }
+    }
+
+    private fun createUploadPostPolicy(contentType: String): UploadPostPolicy {
         val id = UUID.randomUUID().toString()
 
         val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath())).build()

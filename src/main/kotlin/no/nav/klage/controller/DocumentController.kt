@@ -63,10 +63,10 @@ class KabalController(private val documentService: DocumentService) {
         return ResponseEntity(DocumentCreatedResponse(result), HttpStatus.CREATED)
     }
 
-    @PostMapping("uploadpolicy")
-    fun createUploadPolicy(@RequestBody request: UploadUrlRequest): UploadPostPolicy {
-        logger.debug("Create upload policy requested for content type {}", request.contentType)
-        return documentService.createUploadPostPolicy(request.contentType)
+    @PostMapping("uploadpolicies")
+    fun createUploadPolicies(@RequestBody request: UploadUrlsRequest): List<UploadPostPolicy> {
+        logger.debug("Create upload policies requested for content types {}", request.contentTypes)
+        return documentService.createUploadPostPolicies(request.contentTypes)
     }
 
     @GetMapping("{id}/metadata")
@@ -101,7 +101,7 @@ class KabalController(private val documentService: DocumentService) {
 
     data class SignedUrlRequest(val headers: Map<String, String> = emptyMap())
 
-    data class UploadUrlRequest(val contentType: String)
+    data class UploadUrlsRequest(val contentTypes: List<String>)
 
     data class ConvertRequest(val scannedGeneration: Long)
 }
