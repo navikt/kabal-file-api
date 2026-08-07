@@ -1,7 +1,5 @@
 package no.nav.klage.service
 
-import com.google.auth.ServiceAccountSigner
-import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.cloud.storage.*
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.klage.clients.clamav.ClamAvClient
@@ -45,9 +43,6 @@ class DocumentService(
         private const val DELETE_DURATION_TIMER = "kabalfileapi.document.delete.duration"
         private const val DELETE_FAILED_COUNTER = "kabalfileapi.document.delete.failed"
         private const val SIZE_SUMMARY = "kabalfileapi.document.size.bytes"
-        private const val UPLOAD_POLICY_BATCH_DURATION_TIMER = "kabalfileapi.uploadpolicy.batch.duration"
-        private const val UPLOAD_POLICY_ID_DURATION_TIMER = "kabalfileapi.uploadpolicy.id.duration"
-        private const val UPLOAD_POLICY_SIGNING_DURATION_TIMER = "kabalfileapi.uploadpolicy.signing.duration"
 
         //Enforced by GCS via the upload policy. Must not exceed Int.MAX_VALUE, since the
         //content-length-range condition is expressed in ints. 512 MB.
@@ -60,29 +55,6 @@ class DocumentService(
             MediaType.IMAGE_PNG_VALUE,
             "image/tiff",
         )
-    }
-
-    /**
-     * Signing a post policy is only a local RSA operation when the credentials carry a private key.
-     * Any other kind of [ServiceAccountSigner] (workload identity federation, impersonation, compute
-     * engine) signs by calling the IAM `signBlob` API, which is a network round trip per policy and
-     * is by far the most likely explanation if signing turns out to be slow. Used as a metric tag so
-     * the timers below can be read without having to guess how the pod is authenticated.
-     */
-    private val signerType: String by lazy {
-        when (val credentials = gcsStorage.options.credentials) {
-            is ServiceAccountCredentials ->
-                if (credentials.privateKey != null) "local_private_key" else "remote_iam_sign_blob"
-
-            is ServiceAccountSigner -> "remote_iam_sign_blob"
-            else -> "not_a_signer"
-        }.also {
-            logger.info(
-                "Upload policies are signed with credentials of type {}, signing is {}.",
-                gcsStorage.options.credentials.javaClass.simpleName,
-                it,
-            )
-        }
     }
 
     fun getDocumentAsBlob(id: String): Blob {
@@ -165,8 +137,7 @@ class DocumentService(
      * multipart/form-data to [UploadPostPolicy.url] with every entry of [UploadPostPolicy.fields] as a
      * form field, and the file itself as the last field ("file").
      *
-     * GCS has no batch API for signed post policies, so they are signed one by one. How expensive
-     * that is depends on the credentials, see [signerType].
+     * GCS has no batch API for signed post policies, so they are signed one by one.
      */
     fun createUploadPostPolicies(contentTypes: List<String>): List<UploadPostPolicy> {
         if (contentTypes.isEmpty()) {
@@ -181,39 +152,13 @@ class DocumentService(
             )
         }
 
-        val (policies, batchDuration) = measureDuration {
-            contentTypes.mapIndexed { index, contentType ->
-                createUploadPostPolicy(contentType = contentType, index = index)
-            }
+        return contentTypes.map { contentType ->
+            createUploadPostPolicy(contentType = contentType)
         }
-
-        //The batch timer minus the sum of the per-policy timers is time spent outside signing.
-        meterRegistry.recordTimer(
-            UPLOAD_POLICY_BATCH_DURATION_TIMER,
-            batchDuration,
-            "signer", signerType,
-            "count", contentTypes.size.toString(),
-        )
-
-        logger.debug(
-            "Created {} signed upload policies in {} ms.",
-            policies.size,
-            batchDuration.toMillis(),
-        )
-
-        return policies
     }
 
-    private fun createUploadPostPolicy(contentType: String, index: Int): UploadPostPolicy {
-        //Tagging the first policy of a batch separately: if only the first one is slow, the cost is
-        //one-off work (credential/token refresh, class loading), not per-policy work.
-        val position = if (index == 0) "first" else "subsequent"
-
-        val (id, idDuration) = measureDuration {
-            //SecureRandom, so this can block if the pod is short on entropy.
-            UUID.randomUUID().toString()
-        }
-        meterRegistry.recordTimer(UPLOAD_POLICY_ID_DURATION_TIMER, idDuration)
+    private fun createUploadPostPolicy(contentType: String): UploadPostPolicy {
+        val id = UUID.randomUUID().toString()
 
         val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath())).build()
 
@@ -225,29 +170,14 @@ class DocumentService(
             .addContentLengthRangeCondition(1, MAX_UPLOAD_SIZE)
             .build()
 
-        val (policy, signingDuration) = measureDuration {
-            gcsStorage.generateSignedPostPolicyV4(
-                blobInfo,
-                30, TimeUnit.MINUTES,
-                fields,
-                conditions,
-            )
-        }
-        meterRegistry.recordTimer(
-            UPLOAD_POLICY_SIGNING_DURATION_TIMER,
-            signingDuration,
-            "signer", signerType,
-            "position", position,
+        val policy = gcsStorage.generateSignedPostPolicyV4(
+            blobInfo,
+            30, TimeUnit.MINUTES,
+            fields,
+            conditions,
         )
 
-        logger.debug(
-            "Created signed upload policy for new document with id {}. Id generation took {} ms, signing took {} ms ({}, {}).",
-            id,
-            idDuration.toMillis(),
-            signingDuration.toMillis(),
-            signerType,
-            position,
-        )
+        logger.debug("Created signed upload policy for new document with id {}.", id)
 
         return UploadPostPolicy(
             id = id,
