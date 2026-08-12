@@ -1,6 +1,7 @@
 package no.nav.klage.util
 
-import no.nav.klage.exceptions.AttachmentCouldNotBeConvertedException
+import no.nav.klage.exceptions.AttachmentConversionFailedException
+import no.nav.klage.exceptions.AttachmentUnsupportedTypeException
 import no.nav.klage.getLogger
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
@@ -64,7 +65,7 @@ class Image2PDF {
         val detectedType = detectContentType(file)
 
         if (PDF != detectedType && detectedType !in IMAGEIO_TYPES) {
-            val exception = AttachmentCouldNotBeConvertedException()
+            val exception = AttachmentUnsupportedTypeException()
             logger.warn("User tried to upload an unsupported file type: $detectedType", exception)
             throw exception
         }
@@ -89,7 +90,7 @@ class Image2PDF {
         }
 
         if (detectedType !in IMAGEIO_TYPES) {
-            val exception = AttachmentCouldNotBeConvertedException()
+            val exception = AttachmentUnsupportedTypeException()
             logger.warn("User tried to upload an unsupported file type: $detectedType", exception)
             throw exception
         }
@@ -127,10 +128,12 @@ class Image2PDF {
                 }
                 doc.save(target)
             }
-        } catch (ex: AttachmentCouldNotBeConvertedException) {
+        } catch (ex: AttachmentUnsupportedTypeException) {
+            throw ex
+        } catch (ex: AttachmentConversionFailedException) {
             throw ex
         } catch (ex: Exception) {
-            throw RuntimeException("Conversion of attachment failed", ex)
+            throw AttachmentConversionFailedException("Conversion of attachment failed", ex)
         }
     }
 
@@ -148,7 +151,8 @@ class Image2PDF {
             }
         }
 
-        val image = ImageIO.read(source) ?: throw AttachmentCouldNotBeConvertedException()
+        val image = ImageIO.read(source)
+            ?: throw AttachmentConversionFailedException("ImageIO could not decode file despite matching content type — file may be corrupt")
         return LosslessFactory.createFromImage(doc, ImageUtils.capResolution(image))
     }
 
