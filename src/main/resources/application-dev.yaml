@@ -8,3 +8,5 @@ allowed-origins: >
   http://localhost:8080
 
 bucket: kabal-files-dev
+
+KLAGE_UNLEASH_PROXY_URL: http://klage-unleash-proxy

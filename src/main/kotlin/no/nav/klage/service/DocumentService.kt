@@ -4,6 +4,7 @@ import com.google.cloud.storage.*
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.klage.clients.clamav.ClamAvClient
 import no.nav.klage.config.AsyncConfiguration.Companion.DOCUMENT_DELETE_EXECUTOR
+import no.nav.klage.exceptions.AttachmentCouldNotBeConvertedException
 import no.nav.klage.getLogger
 import no.nav.klage.util.Image2PDF
 import no.nav.klage.util.measureDuration
@@ -32,6 +33,7 @@ class DocumentService(
     private val documentDeleteExecutor: Executor,
     @Value($$"${bucket}")
     private val bucket: String,
+    private val failureSimulationService: FailureSimulationService,
 ) {
 
     companion object {
@@ -203,6 +205,11 @@ class DocumentService(
         val blob = getBlobOrThrow(id)
         val declaredContentType = blob.contentType ?: "unknown"
 
+        //Same failure the client sees when ClamAV itself reports an error.
+        if (failureSimulationService.shouldFailVirusScan()) {
+            throw RuntimeException("Simulated error from ClamAV virus scan on document $id.")
+        }
+
         val tempFile = Files.createTempFile("scan-", null)
         try {
             blob.downloadTo(tempFile)
@@ -250,6 +257,10 @@ class DocumentService(
      */
     fun convertDocument(id: String, scannedGeneration: Long): ConvertResult {
         logger.debug("Converting document with id {}", id)
+
+        if (failureSimulationService.shouldFailConversion()) {
+            throw AttachmentCouldNotBeConvertedException()
+        }
 
         val blob = getBlobOrThrow(id)
 

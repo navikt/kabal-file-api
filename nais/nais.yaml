@@ -29,6 +29,7 @@ spec:
       rules:
         - application: clamav
           namespace: nais-system
+        - application: klage-unleash-proxy
   liveness:
     path: /internal/health
     initialDelay: 20
