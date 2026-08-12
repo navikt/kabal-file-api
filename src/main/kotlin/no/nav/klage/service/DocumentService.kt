@@ -4,7 +4,6 @@ import com.google.cloud.storage.*
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.klage.clients.clamav.ClamAvClient
 import no.nav.klage.config.AsyncConfiguration.Companion.DOCUMENT_DELETE_EXECUTOR
-import no.nav.klage.exceptions.AttachmentCouldNotBeConvertedException
 import no.nav.klage.getLogger
 import no.nav.klage.util.Image2PDF
 import no.nav.klage.util.measureDuration
@@ -258,10 +257,6 @@ class DocumentService(
     fun convertDocument(id: String, scannedGeneration: Long): ConvertResult {
         logger.debug("Converting document with id {}", id)
 
-        if (failureSimulationService.shouldFailConversion()) {
-            throw AttachmentCouldNotBeConvertedException()
-        }
-
         val blob = getBlobOrThrow(id)
 
         if (blob.generation != scannedGeneration) {
@@ -273,11 +268,19 @@ class DocumentService(
         }
 
         //Declared content type from upload; refined to the actually detected type once we convert.
-        var fileType = blob.contentType ?: "unknown"
+        var fileType: String
 
         val tempFile = Files.createTempFile("convert-", null)
         try {
             blob.downloadTo(tempFile)
+
+            //Same failure the client sees when the conversion itself blows up unexpectedly.
+            if (failureSimulationService.shouldFailConversion()) {
+                throw RuntimeException(
+                    "Conversion of attachment failed",
+                    IllegalStateException("Simulated unexpected error while converting document $id."),
+                )
+            }
 
             val (conversion, conversionDuration) = measureDuration {
                 image2PDF.convertIfImage(tempFile.toFile())
