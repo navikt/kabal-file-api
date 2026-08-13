@@ -47,7 +47,7 @@ class DocumentService(
 
         //Enforced by GCS via the upload policy. Must not exceed Int.MAX_VALUE, since the
         //content-length-range condition is expressed in ints. 512 MB.
-        private const val MAX_UPLOAD_SIZE = 52000000
+        private const val MAX_UPLOAD_SIZE = 512000000
 
         //The client uploads the raw file directly to GCS, so we only allow types we can turn into a PDF.
         private val ALLOWED_UPLOAD_CONTENT_TYPES = setOf(
