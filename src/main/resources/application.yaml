@@ -36,3 +36,9 @@ management:
     enabled: false
 
 CLAM_AV_URL: http://clamav.nais-system/api/v2/scan
+
+#Image to PDF conversion is the most memory hungry work the service does. Bounding how many run at
+#once keeps the worst case peak well inside the pod's memory limit.
+conversion:
+  max-concurrent: 2
+  permit-timeout-seconds: 120
