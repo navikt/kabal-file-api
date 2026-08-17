@@ -216,7 +216,7 @@ class Image2PDF(
                 }
 
                 for (index in 0 until pageCount) {
-                    addImagePage(doc, readCapped(reader, index))
+                    addImagePage(doc, reader, index)
                 }
             } finally {
                 reader.dispose()
@@ -228,7 +228,7 @@ class Image2PDF(
      * Decodes page [index] already downscaled. The subsampling factor is derived from the header
      * dimensions, which are cheap to read, so a huge image is never materialised at full resolution.
      */
-    private fun readCapped(reader: ImageReader, index: Int): BufferedImage {
+    private fun readSubsampled(reader: ImageReader, index: Int): BufferedImage {
         val width = reader.getWidth(index)
         val height = reader.getHeight(index)
         val factor = ImageUtils.subsamplingFactor(width, height)
@@ -245,14 +245,21 @@ class Image2PDF(
             )
     }
 
-    private fun addImagePage(doc: PDDocument, image: BufferedImage) {
-        val capped = ImageUtils.capResolution(image)
-        try {
-            drawOnNewPage(doc, LosslessFactory.createFromImage(doc, capped))
-        } finally {
-            //Release the pixel data as soon as it has been encoded, before decoding the next page.
-            capped.flush()
+    private fun addImagePage(doc: PDDocument, reader: ImageReader, index: Int) {
+        //The encoder allocates a good deal on its own, so the decoded source must be unreachable
+        //before it starts. Producing the capped image in a separate call means only the capped image
+        //is still referenced here, instead of both of them coexisting for the whole encode.
+        val xImage = LosslessFactory.createFromImage(doc, cappedImage(reader, index))
+        drawOnNewPage(doc, xImage)
+    }
+
+    private fun cappedImage(reader: ImageReader, index: Int): BufferedImage {
+        val decoded = readSubsampled(reader, index)
+        val capped = ImageUtils.capResolution(decoded)
+        if (capped !== decoded) {
+            decoded.flush()
         }
+        return capped
     }
 
     private fun drawOnNewPage(doc: PDDocument, xImage: PDImageXObject) {

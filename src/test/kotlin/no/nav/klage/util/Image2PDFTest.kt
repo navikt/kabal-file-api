@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Test
 import java.awt.Color
 import java.awt.image.BufferedImage
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import javax.imageio.IIOImage
 import javax.imageio.ImageIO
 import javax.imageio.stream.FileImageOutputStream
@@ -85,6 +88,34 @@ class Image2PDFTest {
 
         assertThat(result.wasConverted).isFalse()
         assertThat(file.readBytes()).isEqualTo(bytesAfterFirstConversion)
+    }
+
+    @Test
+    fun `concurrent conversions all produce valid pdfs`() {
+        //Two large files converting at once was what OOM-killed the pod. The permit count keeps peak
+        //heap flat; this guards the other half of that contract, that queueing does not corrupt or
+        //drop any of the results.
+        val serialised = Image2PDF(maxConcurrentConversions = 1, permitTimeoutSeconds = 60)
+        val files = (1..4).map { writeTiff(tempFile("concurrent-$it"), listOf(image(1500, 2000))) }
+
+        val pool = Executors.newFixedThreadPool(files.size)
+        try {
+            val startTogether = CountDownLatch(files.size)
+            val futures = files.map { file ->
+                pool.submit {
+                    startTogether.countDown()
+                    startTogether.await()
+                    serialised.convertIfImage(file)
+                }
+            }
+            futures.forEach { it.get(180, TimeUnit.SECONDS) }
+        } finally {
+            pool.shutdownNow()
+        }
+
+        files.forEach { file ->
+            Loader.loadPDF(file).use { assertThat(it.numberOfPages).isEqualTo(1) }
+        }
     }
 
     private fun tempFile(prefix: String): File =
