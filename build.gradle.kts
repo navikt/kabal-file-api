@@ -52,7 +52,11 @@ idea {
     }
 }
 
-java.sourceCompatibility = JavaVersion.VERSION_21
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
 
 tasks.withType<KotlinCompile> {
     compilerOptions {
