@@ -3,7 +3,7 @@ package no.nav.klage.controller
 
 import jakarta.servlet.http.HttpServletResponse
 import no.nav.klage.getLogger
-import no.nav.klage.service.DocumentService
+import no.nav.klage.service.*
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -63,13 +63,45 @@ class KabalController(private val documentService: DocumentService) {
         return ResponseEntity(DocumentCreatedResponse(result), HttpStatus.CREATED)
     }
 
+    @PostMapping("uploadpolicies")
+    fun createUploadPolicies(@RequestBody request: UploadUrlsRequest): List<UploadPostPolicy> {
+        logger.debug("Create upload policies requested for content types {}", request.contentTypes)
+        return documentService.createUploadPostPolicies(request.contentTypes)
+    }
+
+    @GetMapping("{id}/metadata")
+    fun getDocumentMetadata(@PathVariable("id") id: String): DocumentMetadata {
+        logger.debug("Get document metadata requested with id {}", id)
+        return documentService.getDocumentMetadata(id)
+    }
+
+    @PostMapping("{id}/scan")
+    fun scanDocument(@PathVariable("id") id: String): ScanResult {
+        logger.debug("Scan document requested with id {}", id)
+        return documentService.scanDocument(id)
+    }
+
+    @PostMapping("{id}/convert")
+    fun convertDocument(
+        @PathVariable("id") id: String,
+        @RequestBody request: ConvertRequest,
+    ): ConvertResult {
+        logger.debug("Convert document requested with id {}", id)
+        return documentService.convertDocument(id = id, scannedGeneration = request.scannedGeneration)
+    }
+
     @DeleteMapping("{id}")
-    fun deleteDocument(@PathVariable("id") id: String): Boolean {
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    fun deleteDocument(@PathVariable("id") id: String) {
         logger.debug("Delete document requested.")
-        return documentService.deleteDocument(id)
+        documentService.deleteDocument(id)
     }
 
     data class DocumentCreatedResponse(val id: String)
 
     data class SignedUrlRequest(val headers: Map<String, String> = emptyMap())
+
+    data class UploadUrlsRequest(val contentTypes: List<String>)
+
+    data class ConvertRequest(val scannedGeneration: Long)
 }

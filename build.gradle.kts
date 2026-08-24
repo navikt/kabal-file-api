@@ -4,6 +4,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val logstashVersion = "9.0"
 val tokenValidationVersion = "5.0.30"
 val googleCloudVersion = "8.1.0"
+val pdfboxVersion = "3.0.8"
+val tikaVersion = "3.3.2"
+val twelveMonkeysVersion = "3.12.0"
 
 repositories {
     mavenCentral()
@@ -23,10 +26,14 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.google.cloud:spring-cloud-gcp-starter-storage:$googleCloudVersion")
     implementation("org.projectreactor:reactor-spring:1.0.1.RELEASE")
+    implementation("org.apache.pdfbox:pdfbox:$pdfboxVersion")
+    implementation("org.apache.tika:tika-core:$tikaVersion")
+    implementation("com.twelvemonkeys.imageio:imageio-tiff:$twelveMonkeysVersion")
 
     implementation("ch.qos.logback:logback-classic")
     implementation("net.logstash.logback:logstash-logback-encoder:$logstashVersion")
@@ -45,7 +52,11 @@ idea {
     }
 }
 
-java.sourceCompatibility = JavaVersion.VERSION_21
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
 
 tasks.withType<KotlinCompile> {
     compilerOptions {

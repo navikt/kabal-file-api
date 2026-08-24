@@ -1,4 +1,8 @@
 buckets:
   - kabal-files-production
 
+envs:
+  - name: JAVA_TOOL_OPTIONS
+    value: -XX:MaxRAMPercentage=65.0 -XX:+ExitOnOutOfMemoryError
+
 springProfile: prod

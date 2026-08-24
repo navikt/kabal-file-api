@@ -11,11 +11,11 @@ import java.time.temporal.ChronoUnit
 
 @Configuration
 class GCSStorage(
-    @Value("\${GCS_CREDENTIALS}")
+    @Value($$"${GCS_CREDENTIALS}")
     val gcsCredentials: String,
-    @Value("\${bucket}")
+    @Value($$"${bucket}")
     private val bucket: String,
-    @Value("\${allowed-origins}")
+    @Value($$"${allowed-origins}")
     private val allowedOrigins: List<String>,
 ) {
 
@@ -29,7 +29,7 @@ class GCSStorage(
         val cors: Cors =
             Cors.newBuilder()
                 .setOrigins(allowedOrigins.map { Cors.Origin.of(it) })
-                .setMethods(listOf(HttpMethod.GET))
+                .setMethods(listOf(HttpMethod.GET, HttpMethod.PUT, HttpMethod.POST))
                 .setResponseHeaders(listOf("*"))
                 .setMaxAgeSeconds(3600)
                 .build()
