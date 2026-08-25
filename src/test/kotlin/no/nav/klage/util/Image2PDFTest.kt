@@ -14,15 +14,14 @@ import javax.imageio.ImageIO
 import javax.imageio.stream.FileImageOutputStream
 
 class Image2PDFTest {
-
     private val image2PDF = Image2PDF(maxConcurrentConversions = 2, permitTimeoutSeconds = 30)
 
     @Test
     fun `subsampling keeps oversized images from being decoded at full resolution`() {
-        //A 300 DPI A4 page is the largest thing we keep untouched.
+        // A 300 DPI A4 page is the largest thing we keep untouched.
         assertThat(ImageUtils.subsamplingFactor(2480, 3508)).isEqualTo(1)
 
-        //Anything much larger has to be decoded subsampled, but never below the target size.
+        // Anything much larger has to be decoded subsampled, but never below the target size.
         val factor = ImageUtils.subsamplingFactor(20000, 14000)
         assertThat(factor).isGreaterThan(1)
         assertThat(20000 / factor).isGreaterThanOrEqualTo(3508)
@@ -92,22 +91,23 @@ class Image2PDFTest {
 
     @Test
     fun `concurrent conversions all produce valid pdfs`() {
-        //Two large files converting at once was what OOM-killed the pod. The permit count keeps peak
-        //heap flat; this guards the other half of that contract, that queueing does not corrupt or
-        //drop any of the results.
+        // Two large files converting at once was what OOM-killed the pod. The permit count keeps peak
+        // heap flat; this guards the other half of that contract, that queueing does not corrupt or
+        // drop any of the results.
         val serialised = Image2PDF(maxConcurrentConversions = 1, permitTimeoutSeconds = 60)
         val files = (1..4).map { writeTiff(tempFile("concurrent-$it"), listOf(image(1500, 2000))) }
 
         val pool = Executors.newFixedThreadPool(files.size)
         try {
             val startTogether = CountDownLatch(files.size)
-            val futures = files.map { file ->
-                pool.submit {
-                    startTogether.countDown()
-                    startTogether.await()
-                    serialised.convertIfImage(file)
+            val futures =
+                files.map { file ->
+                    pool.submit {
+                        startTogether.countDown()
+                        startTogether.await()
+                        serialised.convertIfImage(file)
+                    }
                 }
-            }
             futures.forEach { it.get(180, TimeUnit.SECONDS) }
         } finally {
             pool.shutdownNow()
@@ -118,10 +118,12 @@ class Image2PDFTest {
         }
     }
 
-    private fun tempFile(prefix: String): File =
-        File.createTempFile("image2pdf-$prefix-", null).apply { deleteOnExit() }
+    private fun tempFile(prefix: String): File = File.createTempFile("image2pdf-$prefix-", null).apply { deleteOnExit() }
 
-    private fun image(width: Int, height: Int): BufferedImage =
+    private fun image(
+        width: Int,
+        height: Int,
+    ): BufferedImage =
         BufferedImage(width, height, BufferedImage.TYPE_INT_RGB).apply {
             val g = createGraphics()
             g.paint = Color.WHITE
@@ -131,7 +133,10 @@ class Image2PDFTest {
             g.dispose()
         }
 
-    private fun writeTiff(file: File, images: List<BufferedImage>): File {
+    private fun writeTiff(
+        file: File,
+        images: List<BufferedImage>,
+    ): File {
         val writer = ImageIO.getImageWritersByFormatName("tiff").next()
         FileImageOutputStream(file).use { output ->
             writer.output = output

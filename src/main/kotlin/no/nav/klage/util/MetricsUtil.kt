@@ -11,15 +11,26 @@ inline fun <T> measureDuration(block: () -> T): Pair<T, Duration> {
     return result to Duration.ofNanos(System.nanoTime() - start)
 }
 
-fun MeterRegistry.recordTimer(name: String, duration: Duration, vararg tags: String) {
-    Timer.builder(name)
+fun MeterRegistry.recordTimer(
+    name: String,
+    duration: Duration,
+    vararg tags: String,
+) {
+    Timer
+        .builder(name)
         .tags(*tags)
         .register(this)
         .record(duration)
 }
 
-fun MeterRegistry.recordDistribution(name: String, value: Double, baseUnit: String? = null, vararg tags: String) {
-    DistributionSummary.builder(name)
+fun MeterRegistry.recordDistribution(
+    name: String,
+    value: Double,
+    baseUnit: String? = null,
+    vararg tags: String,
+) {
+    DistributionSummary
+        .builder(name)
         .baseUnit(baseUnit)
         .tags(*tags)
         .register(this)

@@ -22,7 +22,6 @@ class UnleashConfiguration(
     @Value($$"${NAIS_APP_NAME:kabal-file-api}")
     private val naisAppName: String,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
@@ -33,20 +32,20 @@ class UnleashConfiguration(
 
     @Bean
     @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
-    fun klageUnleashProxyContext(tokenValidationContextHolder: TokenValidationContextHolder): KlageUnleashProxyContext {
-        return KlageUnleashProxyContext(
+    fun klageUnleashProxyContext(tokenValidationContextHolder: TokenValidationContextHolder): KlageUnleashProxyContext =
+        KlageUnleashProxyContext(
             navIdent = getNavIdent(tokenValidationContextHolder),
             appName = naisAppName,
             podName = naisPodName,
         )
-    }
 
     /**
      * Returns null for machine-to-machine (client credentials) calls, which have no NAVident claim.
      */
     private fun getNavIdent(tokenValidationContextHolder: TokenValidationContextHolder): String? =
         try {
-            tokenValidationContextHolder.getTokenValidationContext()
+            tokenValidationContextHolder
+                .getTokenValidationContext()
                 .getJwtToken(AZURE_AD_ISSUER)
                 ?.jwtTokenClaims
                 ?.getStringClaim(NAV_IDENT_CLAIM)

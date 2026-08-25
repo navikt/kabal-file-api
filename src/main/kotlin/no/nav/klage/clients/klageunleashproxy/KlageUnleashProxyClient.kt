@@ -30,17 +30,20 @@ class KlageUnleashProxyClient(
             return false
         }
 
-        val requestBody = UnleashProxyRequest(
-            navIdent = klageUnleashProxyContext.navIdent!!,
-            appName = klageUnleashProxyContext.appName,
-            podName = klageUnleashProxyContext.podName,
-        )
+        val requestBody =
+            UnleashProxyRequest(
+                navIdent = klageUnleashProxyContext.navIdent!!,
+                appName = klageUnleashProxyContext.appName,
+                podName = klageUnleashProxyContext.podName,
+            )
 
-        return klageUnleashProxyWebClient.post()
+        return klageUnleashProxyWebClient
+            .post()
             .uri("/features/$feature")
             .bodyValue(requestBody)
             .retrieve()
             .bodyToMono<FeatureToggleResponse>()
-            .block()?.enabled ?: false
+            .block()
+            ?.enabled ?: false
     }
 }

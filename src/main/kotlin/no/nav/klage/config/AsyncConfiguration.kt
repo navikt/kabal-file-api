@@ -7,7 +7,6 @@ import java.util.concurrent.ThreadPoolExecutor
 
 @Configuration
 class AsyncConfiguration {
-
     companion object {
         const val DOCUMENT_DELETE_EXECUTOR = "documentDeleteExecutor"
     }
@@ -25,7 +24,7 @@ class AsyncConfiguration {
             queueCapacity = 1000
             setThreadNamePrefix("document-delete-")
             setRejectedExecutionHandler(ThreadPoolExecutor.CallerRunsPolicy())
-            //Let queued deletions finish when the pod is shutting down.
+            // Let queued deletions finish when the pod is shutting down.
             setWaitForTasksToCompleteOnShutdown(true)
             setAwaitTerminationSeconds(20)
             initialize()

@@ -9,7 +9,6 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 object ImageUtils {
-
     /**
      * Upper bound on the resolution we keep when embedding an image in an A4 page. Images with a
      * higher effective resolution are downscaled; anything at or below this is embedded untouched.
@@ -25,7 +24,10 @@ object ImageUtils {
      * The pixel bounds an image of the given orientation is allowed to occupy, so a landscape image is
      * allowed just as many pixels as its rotated portrait equivalent.
      */
-    private fun boundsFor(width: Int, height: Int): Pair<Int, Int> {
+    private fun boundsFor(
+        width: Int,
+        height: Int,
+    ): Pair<Int, Int> {
         val boundLong = max(maxPixelWidth, maxPixelHeight)
         val boundShort = min(maxPixelWidth, maxPixelHeight)
         return if (width >= height) boundLong to boundShort else boundShort to boundLong
@@ -35,7 +37,10 @@ object ImageUtils {
      * How much a [width] x [height] image has to shrink to fit within the [MAX_DPI] bounds. Values at
      * or below 1 mean the image is already small enough.
      */
-    private fun shrinkFactor(width: Int, height: Int): Double {
+    private fun shrinkFactor(
+        width: Int,
+        height: Int,
+    ): Double {
         val (boundWidth, boundHeight) = boundsFor(width, height)
         return max(width.toDouble() / boundWidth, height.toDouble() / boundHeight)
     }
@@ -49,7 +54,10 @@ object ImageUtils {
      * This is the difference between holding a 20000x14000 scan in memory (over 1 GB as ARGB) and
      * holding something A4 sized, and is what keeps conversion of large TIFFs inside the memory limit.
      */
-    fun subsamplingFactor(width: Int, height: Int): Int {
+    fun subsamplingFactor(
+        width: Int,
+        height: Int,
+    ): Int {
         val shrink = shrinkFactor(width, height)
         if (shrink <= 1.0) {
             return 1
@@ -83,16 +91,22 @@ object ImageUtils {
      * to 32 bit RGB. Scanned documents are frequently bilevel, and promoting them would quadruple both
      * the heap used while scaling and the size of the embedded image.
      */
-    private fun targetTypeFor(image: BufferedImage): Int = when {
-        image.colorModel.hasAlpha() -> BufferedImage.TYPE_INT_ARGB
-        image.type == BufferedImage.TYPE_BYTE_GRAY ||
-            image.type == BufferedImage.TYPE_USHORT_GRAY ||
-            image.type == BufferedImage.TYPE_BYTE_BINARY -> BufferedImage.TYPE_BYTE_GRAY
+    private fun targetTypeFor(image: BufferedImage): Int =
+        when {
+            image.colorModel.hasAlpha() -> BufferedImage.TYPE_INT_ARGB
 
-        else -> BufferedImage.TYPE_INT_RGB
-    }
+            image.type == BufferedImage.TYPE_BYTE_GRAY ||
+                image.type == BufferedImage.TYPE_USHORT_GRAY ||
+                image.type == BufferedImage.TYPE_BYTE_BINARY -> BufferedImage.TYPE_BYTE_GRAY
 
-    private fun resize(image: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage {
+            else -> BufferedImage.TYPE_INT_RGB
+        }
+
+    private fun resize(
+        image: BufferedImage,
+        newWidth: Int,
+        newHeight: Int,
+    ): BufferedImage {
         val target = BufferedImage(newWidth, newHeight, targetTypeFor(image))
         val g = target.createGraphics()
         try {
@@ -103,8 +117,8 @@ object ImageUtils {
         } finally {
             g.dispose()
         }
-        //The source is not needed once drawn into the smaller target; releasing it here keeps the peak
-        //at one large image rather than two.
+        // The source is not needed once drawn into the smaller target; releasing it here keeps the peak
+        // at one large image rather than two.
         image.flush()
         return target
     }
