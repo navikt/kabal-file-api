@@ -1,6 +1,11 @@
 package no.nav.klage.service
 
-import com.google.cloud.storage.*
+import com.google.cloud.storage.Blob
+import com.google.cloud.storage.BlobId
+import com.google.cloud.storage.BlobInfo
+import com.google.cloud.storage.PostPolicyV4
+import com.google.cloud.storage.Storage
+import com.google.cloud.storage.StorageException
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.klage.clients.clamav.ClamAvClient
 import no.nav.klage.config.AsyncConfiguration.Companion.DOCUMENT_DELETE_EXECUTOR
@@ -18,7 +23,7 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.server.ResponseStatusException
 import java.io.FileNotFoundException
 import java.nio.file.Files
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 

@@ -67,7 +67,7 @@ class Image2PDF(
         )
     }
 
-    private val A4: PDRectangle = PDRectangle.A4
+    private val a4: PDRectangle = PDRectangle.A4
 
     private val conversionPermits = Semaphore(max(1, maxConcurrentConversions))
 
@@ -263,7 +263,7 @@ class Image2PDF(
     }
 
     private fun drawOnNewPage(doc: PDDocument, xImage: PDImageXObject) {
-        val page = PDPage(A4)
+        val page = PDPage(a4)
         doc.addPage(page)
         PDPageContentStream(doc, page).use { contentStream ->
             contentStream.drawImage(xImage, placementMatrix(xImage.width, xImage.height))
@@ -278,8 +278,8 @@ class Image2PDF(
         val rotate = imageWidth > imageHeight
 
         //Width and height of the page area the image gets to occupy, in the image's own orientation.
-        val availableWidth = if (rotate) A4.height else A4.width
-        val availableHeight = if (rotate) A4.width else A4.height
+        val availableWidth = if (rotate) a4.height else a4.width
+        val availableHeight = if (rotate) a4.width else a4.height
 
         val scale = min(availableWidth / imageWidth, availableHeight / imageHeight)
         val drawWidth = imageWidth * scale
@@ -288,8 +288,8 @@ class Image2PDF(
         //Size actually taken up on the page once the rotation is applied.
         val onPageWidth = if (rotate) drawHeight else drawWidth
         val onPageHeight = if (rotate) drawWidth else drawHeight
-        val offsetX = (A4.width - onPageWidth) / 2
-        val offsetY = (A4.height - onPageHeight) / 2
+        val offsetX = (a4.width - onPageWidth) / 2
+        val offsetY = (a4.height - onPageHeight) / 2
 
         val transform = AffineTransform()
         if (rotate) {

@@ -9,7 +9,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
-import java.util.*
+import java.util.Base64
 import java.util.concurrent.TimeUnit
 
 class UploadPostPolicyTest {

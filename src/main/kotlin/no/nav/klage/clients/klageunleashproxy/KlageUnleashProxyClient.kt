@@ -37,7 +37,7 @@ class KlageUnleashProxyClient(
         )
 
         return klageUnleashProxyWebClient.post()
-            .uri("/features/${feature}")
+            .uri("/features/$feature")
             .bodyValue(requestBody)
             .retrieve()
             .bodyToMono<FeatureToggleResponse>()
