@@ -1,6 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
+val ktlintVersion = "1.8.0"
 val logstashVersion = "9.0"
 val tokenValidationVersion = "5.0.30"
 val googleCloudVersion = "8.1.0"
@@ -18,6 +20,7 @@ plugins {
     kotlin("plugin.spring") version kotlinVersion
     id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
     idea
 }
 
@@ -49,6 +52,18 @@ dependencies {
 idea {
     module {
         isDownloadJavadoc = true
+    }
+}
+
+ktlint {
+    version.set(ktlintVersion)
+    ignoreFailures.set(false)
+    reporters {
+        reporter(ReporterType.PLAIN)
+        reporter(ReporterType.CHECKSTYLE)
+    }
+    filter {
+        exclude { it.file.path.contains("${File.separator}build${File.separator}") }
     }
 }
 
