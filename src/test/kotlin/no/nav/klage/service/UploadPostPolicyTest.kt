@@ -9,42 +9,48 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
-import java.util.*
+import java.util.Base64
 import java.util.concurrent.TimeUnit
 
 class UploadPostPolicyTest {
-
-    private fun storage() = StorageOptions.newBuilder()
-        .setProjectId("test-project")
-        .setCredentials(
-            ServiceAccountCredentials.newBuilder()
-                .setClientEmail("test@test-project.iam.gserviceaccount.com")
-                .setPrivateKeyId("key-id")
-                .setPrivateKey(
-                    KeyPairGenerator.getInstance("RSA")
-                        .apply { initialize(2048) }
-                        .generateKeyPair().private as RSAPrivateKey
-                )
-                .setProjectId("test-project")
-                .build()
-        )
-        .build()
-        .service
+    private fun storage() =
+        StorageOptions
+            .newBuilder()
+            .setProjectId("test-project")
+            .setCredentials(
+                ServiceAccountCredentials
+                    .newBuilder()
+                    .setClientEmail("test@test-project.iam.gserviceaccount.com")
+                    .setPrivateKeyId("key-id")
+                    .setPrivateKey(
+                        KeyPairGenerator
+                            .getInstance("RSA")
+                            .apply { initialize(2048) }
+                            .generateKeyPair()
+                            .private as RSAPrivateKey,
+                    ).setProjectId("test-project")
+                    .build(),
+            ).build()
+            .service
 
     @Test
     fun `upload policy enforces a max size and content type`() {
         val maxSize = 536870912
 
-        val policy = storage().generateSignedPostPolicyV4(
-            BlobInfo.newBuilder(BlobId.of("test-bucket", "document/abc")).build(),
-            30, TimeUnit.MINUTES,
-            PostPolicyV4.PostFieldsV4.newBuilder()
-                .setContentType("application/pdf")
-                .build(),
-            PostPolicyV4.PostConditionsV4.newBuilder()
-                .addContentLengthRangeCondition(1, maxSize)
-                .build(),
-        )
+        val policy =
+            storage().generateSignedPostPolicyV4(
+                BlobInfo.newBuilder(BlobId.of("test-bucket", "document/abc")).build(),
+                30,
+                TimeUnit.MINUTES,
+                PostPolicyV4.PostFieldsV4
+                    .newBuilder()
+                    .setContentType("application/pdf")
+                    .build(),
+                PostPolicyV4.PostConditionsV4
+                    .newBuilder()
+                    .addContentLengthRangeCondition(1, maxSize)
+                    .build(),
+            )
 
         val decodedPolicy = String(Base64.getDecoder().decode(policy.fields["policy"]))
 

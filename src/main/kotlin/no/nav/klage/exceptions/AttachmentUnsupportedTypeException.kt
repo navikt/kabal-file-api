@@ -9,5 +9,5 @@ import org.springframework.web.bind.annotation.ResponseStatus
  */
 @ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
 class AttachmentUnsupportedTypeException(
-    override val message: String = "FILE_TYPE_NOT_SUPPORTED"
+    override val message: String = "FILE_TYPE_NOT_SUPPORTED",
 ) : RuntimeException(message)

@@ -54,20 +54,20 @@ class Image2PDF(
     @Value($$"${conversion.permit-timeout-seconds:120}")
     private val permitTimeoutSeconds: Long,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
 
         private const val PDF = MediaType.APPLICATION_PDF_VALUE
-        private val IMAGEIO_TYPES = setOf(
-            MediaType.IMAGE_JPEG_VALUE,
-            MediaType.IMAGE_PNG_VALUE,
-            "image/tiff",
-        )
+        private val IMAGEIO_TYPES =
+            setOf(
+                MediaType.IMAGE_JPEG_VALUE,
+                MediaType.IMAGE_PNG_VALUE,
+                "image/tiff",
+            )
     }
 
-    private val A4: PDRectangle = PDRectangle.A4
+    private val a4: PDRectangle = PDRectangle.A4
 
     private val conversionPermits = Semaphore(max(1, maxConcurrentConversions))
 
@@ -154,13 +154,17 @@ class Image2PDF(
         return Tika().detect(bytesForFiletypeDetection)
     }
 
-    private fun embedImageInPDF(source: File, target: File, detectedType: String) {
-        //[source] and [target] are usually the same file, so the PDF is written next to it and moved
-        //into place only once it is complete. That also avoids destroying the upload on a failed save.
+    private fun embedImageInPDF(
+        source: File,
+        target: File,
+        detectedType: String,
+    ) {
+        // [source] and [target] are usually the same file, so the PDF is written next to it and moved
+        // into place only once it is complete. That also avoids destroying the upload on a failed save.
         val scratchPdf = Files.createTempFile(source.toPath().parent, "convert-", ".pdf")
         try {
-            //A temp file backed stream cache keeps the compressed image data and the document itself
-            //off the heap; without it a large document is buffered in memory twice over.
+            // A temp file backed stream cache keeps the compressed image data and the document itself
+            // off the heap; without it a large document is buffered in memory twice over.
             PDDocument(IOUtils.createTempFileOnlyStreamCache()).use { doc ->
                 if (!(MediaType.IMAGE_JPEG_VALUE == detectedType && tryEmbedJpegAsIs(doc, source))) {
                     embedPages(doc, source)
@@ -173,7 +177,7 @@ class Image2PDF(
         } catch (ex: AttachmentConversionFailedException) {
             throw ex
         } catch (ex: Exception) {
-            throw AttachmentConversionFailedException("Conversion of attachment failed", ex)
+            throw AttachmentConversionFailedException(message = "Conversion of attachment failed", cause = ex)
         } finally {
             Files.deleteIfExists(scratchPdf)
         }
@@ -184,8 +188,11 @@ class Image2PDF(
      * never decoded into heap at all. Returns false if the JPEG cannot be embedded as-is, in which
      * case the caller falls back to decoding it.
      */
-    private fun tryEmbedJpegAsIs(doc: PDDocument, source: File): Boolean {
-        return try {
+    private fun tryEmbedJpegAsIs(
+        doc: PDDocument,
+        source: File,
+    ): Boolean =
+        try {
             val xImage = source.inputStream().use { JPEGFactory.createFromStream(doc, it) }
             drawOnNewPage(doc, xImage)
             true
@@ -193,21 +200,24 @@ class Image2PDF(
             logger.debug("Could not embed JPEG as-is, falling back to re-encoding", ex)
             false
         }
-    }
 
     /**
      * Adds one A4 page per image in the file. Multi page TIFFs are common for scanned documents, and
      * decoding them one page at a time means the peak memory is set by the largest single page rather
      * than by the whole file.
      */
-    private fun embedPages(doc: PDDocument, source: File) {
+    private fun embedPages(
+        doc: PDDocument,
+        source: File,
+    ) {
         ImageIO.createImageInputStream(source).use { input ->
-            val reader = ImageIO.getImageReaders(input).asSequence().firstOrNull()
-                ?: throw AttachmentConversionFailedException(
-                    "ImageIO could not decode file despite matching content type — file may be corrupt"
-                )
+            val reader =
+                ImageIO.getImageReaders(input).asSequence().firstOrNull()
+                    ?: throw AttachmentConversionFailedException(
+                        "ImageIO could not decode file despite matching content type — file may be corrupt",
+                    )
             try {
-                //Metadata is not used, and skipping it avoids reading structures we do not need.
+                // Metadata is not used, and skipping it avoids reading structures we do not need.
                 reader.setInput(input, false, true)
 
                 val pageCount = max(1, reader.getNumImages(true))
@@ -228,7 +238,10 @@ class Image2PDF(
      * Decodes page [index] already downscaled. The subsampling factor is derived from the header
      * dimensions, which are cheap to read, so a huge image is never materialised at full resolution.
      */
-    private fun readSubsampled(reader: ImageReader, index: Int): BufferedImage {
+    private fun readSubsampled(
+        reader: ImageReader,
+        index: Int,
+    ): BufferedImage {
         val width = reader.getWidth(index)
         val height = reader.getHeight(index)
         val factor = ImageUtils.subsamplingFactor(width, height)
@@ -241,19 +254,26 @@ class Image2PDF(
 
         return reader.read(index, param)
             ?: throw AttachmentConversionFailedException(
-                "ImageIO could not decode file despite matching content type — file may be corrupt"
+                "ImageIO could not decode file despite matching content type — file may be corrupt",
             )
     }
 
-    private fun addImagePage(doc: PDDocument, reader: ImageReader, index: Int) {
-        //The encoder allocates a good deal on its own, so the decoded source must be unreachable
-        //before it starts. Producing the capped image in a separate call means only the capped image
-        //is still referenced here, instead of both of them coexisting for the whole encode.
+    private fun addImagePage(
+        doc: PDDocument,
+        reader: ImageReader,
+        index: Int,
+    ) {
+        // The encoder allocates a good deal on its own, so the decoded source must be unreachable
+        // before it starts. Producing the capped image in a separate call means only the capped image
+        // is still referenced here, instead of both of them coexisting for the whole encode.
         val xImage = LosslessFactory.createFromImage(doc, cappedImage(reader, index))
         drawOnNewPage(doc, xImage)
     }
 
-    private fun cappedImage(reader: ImageReader, index: Int): BufferedImage {
+    private fun cappedImage(
+        reader: ImageReader,
+        index: Int,
+    ): BufferedImage {
         val decoded = readSubsampled(reader, index)
         val capped = ImageUtils.capResolution(decoded)
         if (capped !== decoded) {
@@ -262,11 +282,14 @@ class Image2PDF(
         return capped
     }
 
-    private fun drawOnNewPage(doc: PDDocument, xImage: PDImageXObject) {
-        val page = PDPage(A4)
+    private fun drawOnNewPage(
+        doc: PDDocument,
+        xImage: PDImageXObject,
+    ) {
+        val page = PDPage(a4)
         doc.addPage(page)
         PDPageContentStream(doc, page).use { contentStream ->
-            contentStream.drawImage(xImage, placementMatrix(xImage.width, xImage.height))
+            contentStream.drawImage(xImage, placementMatrix(imageWidth = xImage.width, imageHeight = xImage.height))
         }
     }
 
@@ -274,27 +297,30 @@ class Image2PDF(
      * Places the image on a portrait A4 page, scaled to fit and centered. Landscape images are rotated
      * 90 degrees by the matrix rather than by resampling the pixels, which keeps the quality intact.
      */
-    private fun placementMatrix(imageWidth: Int, imageHeight: Int): Matrix {
+    private fun placementMatrix(
+        imageWidth: Int,
+        imageHeight: Int,
+    ): Matrix {
         val rotate = imageWidth > imageHeight
 
-        //Width and height of the page area the image gets to occupy, in the image's own orientation.
-        val availableWidth = if (rotate) A4.height else A4.width
-        val availableHeight = if (rotate) A4.width else A4.height
+        // Width and height of the page area the image gets to occupy, in the image's own orientation.
+        val availableWidth = if (rotate) a4.height else a4.width
+        val availableHeight = if (rotate) a4.width else a4.height
 
         val scale = min(availableWidth / imageWidth, availableHeight / imageHeight)
         val drawWidth = imageWidth * scale
         val drawHeight = imageHeight * scale
 
-        //Size actually taken up on the page once the rotation is applied.
+        // Size actually taken up on the page once the rotation is applied.
         val onPageWidth = if (rotate) drawHeight else drawWidth
         val onPageHeight = if (rotate) drawWidth else drawHeight
-        val offsetX = (A4.width - onPageWidth) / 2
-        val offsetY = (A4.height - onPageHeight) / 2
+        val offsetX = (a4.width - onPageWidth) / 2
+        val offsetY = (a4.height - onPageHeight) / 2
 
         val transform = AffineTransform()
         if (rotate) {
-            //A clockwise 90 degree rotation moves the drawn box into negative y, so shift it back up
-            //by its rotated height before centering.
+            // A clockwise 90 degree rotation moves the drawn box into negative y, so shift it back up
+            // by its rotated height before centering.
             transform.translate(offsetX.toDouble(), (offsetY + onPageHeight).toDouble())
             transform.rotate(Math.toRadians(-90.0))
         } else {

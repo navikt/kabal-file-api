@@ -14,7 +14,6 @@ import java.io.File
 class ClamAvClient(
     @Qualifier("clamAvWebClient") private val clamAvWebClient: WebClient,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
@@ -29,22 +28,28 @@ class ClamAvClient(
         bodyBuilder.part(file.name, FileSystemResource(file)).filename(file.name)
 
         val start = System.currentTimeMillis()
-        val response = clamAvWebClient.post()
-            .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
-            .retrieve()
-            .bodyToMono<List<ScanResult>>()
-            .block()?.firstOrNull() ?: throw RuntimeException("Received empty response from ClamAV")
+        val response =
+            clamAvWebClient
+                .post()
+                .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
+                .retrieve()
+                .bodyToMono<List<ScanResult>>()
+                .block()
+                ?.firstOrNull() ?: throw RuntimeException("Received empty response from ClamAV")
 
         val durationMs = System.currentTimeMillis() - start
         logger.debug(
             "ClamAV scan completed in {} ms for file of {} MB. Result: {}",
             durationMs,
             String.format("%.2f", fileSizeMb),
-            response.result
+            response.result,
         )
 
         return when (response.result) {
-            ClamAvResult.OK -> false
+            ClamAvResult.OK -> {
+                false
+            }
+
             ClamAvResult.FOUND -> {
                 logger.warn("Virus found in file: {}. Virus: {}", response.filename, response.virus)
                 true

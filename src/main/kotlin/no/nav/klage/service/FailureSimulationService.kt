@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service
  */
 interface FailureSimulationService {
     fun shouldFailVirusScan(): Boolean
+
     fun shouldFailConversion(): Boolean
 }
 
@@ -22,6 +23,7 @@ interface FailureSimulationService {
 @Profile("!dev")
 class NoFailureSimulationService : FailureSimulationService {
     override fun shouldFailVirusScan(): Boolean = false
+
     override fun shouldFailConversion(): Boolean = false
 }
 
@@ -30,7 +32,6 @@ class NoFailureSimulationService : FailureSimulationService {
 class UnleashFailureSimulationService(
     private val klageUnleashProxyClient: KlageUnleashProxyClient,
 ) : FailureSimulationService {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)

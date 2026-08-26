@@ -1,6 +1,11 @@
 package no.nav.klage.service
 
-import com.google.cloud.storage.*
+import com.google.cloud.storage.Blob
+import com.google.cloud.storage.BlobId
+import com.google.cloud.storage.BlobInfo
+import com.google.cloud.storage.PostPolicyV4
+import com.google.cloud.storage.Storage
+import com.google.cloud.storage.StorageException
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.klage.clients.clamav.ClamAvClient
 import no.nav.klage.config.AsyncConfiguration.Companion.DOCUMENT_DELETE_EXECUTOR
@@ -18,7 +23,7 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.server.ResponseStatusException
 import java.io.FileNotFoundException
 import java.nio.file.Files
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
@@ -34,7 +39,6 @@ class DocumentService(
     private val bucket: String,
     private val failureSimulationService: FailureSimulationService,
 ) {
-
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
         private val logger = getLogger(javaClass.enclosingClass)
@@ -45,17 +49,18 @@ class DocumentService(
         private const val DELETE_FAILED_COUNTER = "kabalfileapi.document.delete.failed"
         private const val SIZE_SUMMARY = "kabalfileapi.document.size.bytes"
 
-        //Enforced by GCS via the upload policy. Must not exceed Int.MAX_VALUE, since the
-        //content-length-range condition is expressed in ints. 512 MB.
+        // Enforced by GCS via the upload policy. Must not exceed Int.MAX_VALUE, since the
+        // content-length-range condition is expressed in ints. 512 MB.
         private const val MAX_UPLOAD_SIZE = 512000000
 
-        //The client uploads the raw file directly to GCS, so we only allow types we can turn into a PDF.
-        private val ALLOWED_UPLOAD_CONTENT_TYPES = setOf(
-            MediaType.APPLICATION_PDF_VALUE,
-            MediaType.IMAGE_JPEG_VALUE,
-            MediaType.IMAGE_PNG_VALUE,
-            "image/tiff",
-        )
+        // The client uploads the raw file directly to GCS, so we only allow types we can turn into a PDF.
+        private val ALLOWED_UPLOAD_CONTENT_TYPES =
+            setOf(
+                MediaType.APPLICATION_PDF_VALUE,
+                MediaType.IMAGE_JPEG_VALUE,
+                MediaType.IMAGE_PNG_VALUE,
+                "image/tiff",
+            )
     }
 
     fun getDocumentAsBlob(id: String): Blob {
@@ -64,17 +69,22 @@ class DocumentService(
         return getBlobOrThrow(id)
     }
 
-    fun getDocumentAsSignedUrl(id: String, headers: Map<String, String> = emptyMap()): String {
+    fun getDocumentAsSignedUrl(
+        id: String,
+        headers: Map<String, String> = emptyMap(),
+    ): String {
         logger.debug("Getting document as signed URL with id {}", id)
 
         val blob = getBlobOrThrow(id)
 
         val queryParams = headers.map { (key, value) -> "response-$key" to value }.toMap()
 
-        return blob.signUrl(
-            1, TimeUnit.MINUTES,
-            Storage.SignUrlOption.withQueryParams(queryParams)
-        ).toExternalForm()
+        return blob
+            .signUrl(
+                1,
+                TimeUnit.MINUTES,
+                Storage.SignUrlOption.withQueryParams(queryParams),
+            ).toExternalForm()
     }
 
     /**
@@ -91,9 +101,10 @@ class DocumentService(
 
     private fun deleteDocumentInGCS(id: String) {
         try {
-            val (deleted, duration) = measureDuration {
-                gcsStorage.delete(BlobId.of(bucket, id.toPath()))
-            }
+            val (deleted, duration) =
+                measureDuration {
+                    gcsStorage.delete(BlobId.of(bucket, id.toPath()))
+                }
             if (deleted) {
                 logger.debug("Document {} was deleted in {} ms.", id, duration.toMillis())
             } else {
@@ -102,7 +113,8 @@ class DocumentService(
             meterRegistry.recordTimer(
                 DELETE_DURATION_TIMER,
                 duration,
-                "outcome", if (deleted) "deleted" else "not_found",
+                "outcome",
+                if (deleted) "deleted" else "not_found",
             )
         } catch (e: Exception) {
             logger.error("Could not delete document $id in GCS.", e)
@@ -115,11 +127,13 @@ class DocumentService(
 
         val id = UUID.randomUUID().toString()
 
-        val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath()))
-            .setContentType(file.contentType)
-            .build()
+        val blobInfo =
+            BlobInfo
+                .newBuilder(BlobId.of(bucket, id.toPath()))
+                .setContentType(file.contentType)
+                .build()
 
-        //Staged on disk so the upload can be retried; GCS cannot retry a one-shot InputStream upload.
+        // Staged on disk so the upload can be retried; GCS cannot retry a one-shot InputStream upload.
         val tempFile = Files.createTempFile("upload-", null)
         try {
             file.transferTo(tempFile)
@@ -149,7 +163,7 @@ class DocumentService(
         if (unsupported.isNotEmpty()) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Unsupported content type(s): ${unsupported.joinToString()}"
+                "Unsupported content type(s): ${unsupported.joinToString()}",
             )
         }
 
@@ -163,20 +177,26 @@ class DocumentService(
 
         val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath())).build()
 
-        val fields = PostPolicyV4.PostFieldsV4.newBuilder()
-            .setContentType(contentType)
-            .build()
+        val fields =
+            PostPolicyV4.PostFieldsV4
+                .newBuilder()
+                .setContentType(contentType)
+                .build()
 
-        val conditions = PostPolicyV4.PostConditionsV4.newBuilder()
-            .addContentLengthRangeCondition(1, MAX_UPLOAD_SIZE)
-            .build()
+        val conditions =
+            PostPolicyV4.PostConditionsV4
+                .newBuilder()
+                .addContentLengthRangeCondition(1, MAX_UPLOAD_SIZE)
+                .build()
 
-        val policy = gcsStorage.generateSignedPostPolicyV4(
-            blobInfo,
-            30, TimeUnit.MINUTES,
-            fields,
-            conditions,
-        )
+        val policy =
+            gcsStorage.generateSignedPostPolicyV4(
+                blobInfo,
+                30,
+                TimeUnit.MINUTES,
+                fields,
+                conditions,
+            )
 
         logger.debug("Created signed upload policy for new document with id {}.", id)
 
@@ -204,7 +224,7 @@ class DocumentService(
         val blob = getBlobOrThrow(id)
         val declaredContentType = blob.contentType ?: "unknown"
 
-        //Same failure the client sees when ClamAV itself reports an error.
+        // Same failure the client sees when ClamAV itself reports an error.
         if (failureSimulationService.shouldFailVirusScan()) {
             throw RuntimeException("Simulated error from ClamAV virus scan on document $id.")
         }
@@ -213,15 +233,18 @@ class DocumentService(
         try {
             blob.downloadTo(tempFile)
 
-            //Scan the original bytes the user actually uploaded.
-            val (hasVirus, virusCheckDuration) = measureDuration {
-                clamAvClient.hasVirus(tempFile.toFile())
-            }
+            // Scan the original bytes the user actually uploaded.
+            val (hasVirus, virusCheckDuration) =
+                measureDuration {
+                    clamAvClient.hasVirus(tempFile.toFile())
+                }
             meterRegistry.recordTimer(
                 VIRUSCHECK_DURATION_TIMER,
                 virusCheckDuration,
-                "fileType", declaredContentType,
-                "outcome", if (hasVirus) "virus" else "clean",
+                "fileType",
+                declaredContentType,
+                "outcome",
+                if (hasVirus) "virus" else "clean",
             )
 
             if (hasVirus) {
@@ -234,7 +257,7 @@ class DocumentService(
                 )
             }
 
-            //Rejects unsupported types here, so the client knows before it announces a conversion step.
+            // Rejects unsupported types here, so the client knows before it announces a conversion step.
             val fileTypeInfo = image2PDF.inspect(tempFile.toFile())
 
             return ScanResult(
@@ -254,7 +277,10 @@ class DocumentService(
      * for a while, so the object could have been replaced after it was scanned; converting a
      * different generation than the one we scanned would let unscanned bytes through.
      */
-    fun convertDocument(id: String, scannedGeneration: Long): ConvertResult {
+    fun convertDocument(
+        id: String,
+        scannedGeneration: Long,
+    ): ConvertResult {
         logger.debug("Converting document with id {}", id)
 
         val blob = getBlobOrThrow(id)
@@ -267,14 +293,14 @@ class DocumentService(
             )
         }
 
-        //Declared content type from upload; refined to the actually detected type once we convert.
+        // Declared content type from upload; refined to the actually detected type once we convert.
         var fileType: String
 
         val tempFile = Files.createTempFile("convert-", null)
         try {
             blob.downloadTo(tempFile)
 
-            //Same failure the client sees when the conversion itself blows up unexpectedly.
+            // Same failure the client sees when the conversion itself blows up unexpectedly.
             if (failureSimulationService.shouldFailConversion()) {
                 throw RuntimeException(
                     "Conversion of attachment failed",
@@ -282,15 +308,18 @@ class DocumentService(
                 )
             }
 
-            val (conversion, conversionDuration) = measureDuration {
-                image2PDF.convertIfImage(tempFile.toFile())
-            }
+            val (conversion, conversionDuration) =
+                measureDuration {
+                    image2PDF.convertIfImage(tempFile.toFile())
+                }
             fileType = conversion.originalContentType
             meterRegistry.recordTimer(
                 CONVERSION_DURATION_TIMER,
                 conversionDuration,
-                "fileType", fileType,
-                "converted", conversion.wasConverted.toString(),
+                "fileType",
+                fileType,
+                "converted",
+                conversion.wasConverted.toString(),
             )
 
             if (!conversion.wasConverted) {
@@ -298,8 +327,10 @@ class DocumentService(
                     SIZE_SUMMARY,
                     blob.size.toDouble(),
                     "bytes",
-                    "fileType", fileType,
-                    "outcome", "passthrough",
+                    "fileType",
+                    fileType,
+                    "outcome",
+                    "passthrough",
                 )
                 return ConvertResult(
                     size = blob.size,
@@ -308,12 +339,14 @@ class DocumentService(
                 )
             }
 
-            //Overwrite the same object with the generated PDF, streamed from disk. The generation
-            //precondition makes the write fail instead of clobbering the object if it was deleted or
-            //re-uploaded while we were converting.
-            val pdfBlobInfo = BlobInfo.newBuilder(BlobId.of(bucket, id.toPath()))
-                .setContentType(conversion.contentType)
-                .build()
+            // Overwrite the same object with the generated PDF, streamed from disk. The generation
+            // precondition makes the write fail instead of clobbering the object if it was deleted or
+            // re-uploaded while we were converting.
+            val pdfBlobInfo =
+                BlobInfo
+                    .newBuilder(BlobId.of(bucket, id.toPath()))
+                    .setContentType(conversion.contentType)
+                    .build()
             try {
                 gcsStorage.createFrom(
                     pdfBlobInfo,
@@ -337,8 +370,10 @@ class DocumentService(
                 SIZE_SUMMARY,
                 convertedSize.toDouble(),
                 "bytes",
-                "fileType", fileType,
-                "outcome", "converted",
+                "fileType",
+                fileType,
+                "outcome",
+                "converted",
             )
 
             return ConvertResult(

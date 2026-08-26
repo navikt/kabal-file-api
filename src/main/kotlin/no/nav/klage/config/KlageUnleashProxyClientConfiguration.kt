@@ -13,18 +13,20 @@ import java.time.Duration
 @Configuration
 @Profile("dev")
 class KlageUnleashProxyClientConfiguration {
-
     @Value($$"${KLAGE_UNLEASH_PROXY_URL}")
     private lateinit var klageUnleashProxyURL: String
 
     @Bean
     fun klageUnleashProxyWebClient(): WebClient {
-        //Short timeouts: a slow or unavailable proxy must never hold up a document upload.
-        val httpClient = HttpClient.create()
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2_000)
-            .responseTimeout(Duration.ofSeconds(3))
+        // Short timeouts: a slow or unavailable proxy must never hold up a document upload.
+        val httpClient =
+            HttpClient
+                .create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2_000)
+                .responseTimeout(Duration.ofSeconds(3))
 
-        return WebClient.builder()
+        return WebClient
+            .builder()
             .baseUrl(klageUnleashProxyURL)
             .clientConnector(ReactorClientHttpConnector(httpClient))
             .build()
