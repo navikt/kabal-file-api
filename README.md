@@ -55,3 +55,48 @@ Pick one of the approaches below:
 # or
 ./gradlew addKtlintCheckGitPreCommitHook    # block the commit on violations
 ```
+
+## Static analysis (detekt)
+
+[detekt](https://detekt.dev/) is deliberately scoped to a **single rule**:
+`NamedArguments`. Formatting is owned by ktlint, so detekt's formatting ruleset
+is not on the classpath and every other ruleset is switched off explicitly in
+`config/detekt/detekt.yml`.
+
+`NamedArguments` reports calls with more than three positional arguments, where
+argument order is an easy thing to get wrong:
+
+```kotlin
+// reported
+convertDocument(id, generation, true, false)
+
+// accepted
+convertDocument(id = id, generation = generation, convert = true, force = false)
+```
+
+### Commands
+
+```bash
+./gradlew detektMain detektTest   # analyse main and test sources
+```
+
+Reports are written to `build/reports/detekt/`.
+
+### Why `detektMain` and not `detekt`
+
+`NamedArguments` implements `RequiresAnalysisApi`: detekt has to resolve the
+callee to know the parameter names. Only the `detektMain` and `detektTest` tasks
+run with a compile classpath. The plain `detekt` task would find nothing and pass
+silently, so it is disabled in `build.gradle.kts`. Both analysis aware tasks are
+wired into `check`, and therefore run as part of `./gradlew build`.
+
+### A note on the detekt version
+
+The project uses detekt `2.0.0-alpha.6`, which is a **prerelease**. This is a
+deliberate choice: the latest stable release, 1.23.8, is compiled against Kotlin
+2.0.21 and refuses to run against this project's Kotlin 2.4.10 without pinning
+`kotlin-compiler-embeddable` to an older version on the detekt classpath. detekt
+2.x is built against Kotlin 2.4 and needs no such workaround.
+
+Expect breaking changes in config keys between alpha releases. `allowedArguments`
+for instance was named `threshold` in 1.x.
