@@ -7,8 +7,8 @@ val logstashVersion = "9.0"
 val tokenValidationVersion = "5.0.30"
 val googleCloudVersion = "8.1.0"
 val pdfboxVersion = "3.0.8"
-val tikaVersion = "3.3.2"
-val twelveMonkeysVersion = "3.12.0"
+val tikaVersion = "4.0.0"
+val twelveMonkeysVersion = "3.14.0"
 
 repositories {
     mavenCentral()
