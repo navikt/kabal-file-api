@@ -177,7 +177,7 @@ class Image2PDF(
         } catch (ex: AttachmentConversionFailedException) {
             throw ex
         } catch (ex: Exception) {
-            throw AttachmentConversionFailedException("Conversion of attachment failed", ex)
+            throw AttachmentConversionFailedException(message = "Conversion of attachment failed", cause = ex)
         } finally {
             Files.deleteIfExists(scratchPdf)
         }
@@ -289,7 +289,7 @@ class Image2PDF(
         val page = PDPage(a4)
         doc.addPage(page)
         PDPageContentStream(doc, page).use { contentStream ->
-            contentStream.drawImage(xImage, placementMatrix(xImage.width, xImage.height))
+            contentStream.drawImage(xImage, placementMatrix(imageWidth = xImage.width, imageHeight = xImage.height))
         }
     }
 

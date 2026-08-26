@@ -61,8 +61,16 @@ complexity:
     active: false
   NamedArguments:
     active: true
-    # Calls with more than this many positional arguments must name them.
-    allowedArguments: 3
+    # More than one argument must be named, so that call sites document which
+    # value goes where instead of relying on positional order.
+    allowedArguments: 1
     # A call like foo(id) where the parameter is also named id gains nothing
     # from being written as foo(id = id).
     ignoreArgumentsMatchingNames: true
+    # Symmetric stdlib maths take two interchangeable operands, so naming them
+    # (max(a = 1, b = n)) is noise rather than documentation.
+    ignoreMethods:
+      - reason: 'Operands are symmetric and self-explanatory'
+        value: 'kotlin.math.max'
+      - reason: 'Operands are symmetric and self-explanatory'
+        value: 'kotlin.math.min'

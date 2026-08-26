@@ -63,16 +63,20 @@ Pick one of the approaches below:
 is not on the classpath and every other ruleset is switched off explicitly in
 `config/detekt/detekt.yml`.
 
-`NamedArguments` reports calls with more than three positional arguments, where
+`NamedArguments` reports calls with more than one positional argument, where
 argument order is an easy thing to get wrong:
 
 ```kotlin
 // reported
-convertDocument(id, generation, true, false)
+shrinkFactor(image.width, image.height)
 
 // accepted
-convertDocument(id = id, generation = generation, convert = true, force = false)
+shrinkFactor(width = image.width, height = image.height)
 ```
+
+Symmetric stdlib maths are exempt via `ignoreMethods`, since `max(a = 1, b = n)`
+is noise rather than documentation. Calls to Java methods are skipped
+automatically, because Kotlin cannot name their arguments.
 
 ### Commands
 

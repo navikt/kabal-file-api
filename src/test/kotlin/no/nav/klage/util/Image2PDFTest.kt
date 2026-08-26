@@ -19,17 +19,17 @@ class Image2PDFTest {
     @Test
     fun `subsampling keeps oversized images from being decoded at full resolution`() {
         // A 300 DPI A4 page is the largest thing we keep untouched.
-        assertThat(ImageUtils.subsamplingFactor(2480, 3508)).isEqualTo(1)
+        assertThat(ImageUtils.subsamplingFactor(width = 2480, height = 3508)).isEqualTo(1)
 
         // Anything much larger has to be decoded subsampled, but never below the target size.
-        val factor = ImageUtils.subsamplingFactor(20000, 14000)
+        val factor = ImageUtils.subsamplingFactor(width = 20000, height = 14000)
         assertThat(factor).isGreaterThan(1)
         assertThat(20000 / factor).isGreaterThanOrEqualTo(3508)
     }
 
     @Test
     fun `a large tiff is converted without decoding it at full resolution`() {
-        val file = writeTiff(tempFile("large"), listOf(image(6000, 8000)))
+        val file = writeTiff(file = tempFile("large"), images = listOf(image(width = 6000, height = 8000)))
 
         val result = image2PDF.convertIfImage(file)
 
@@ -42,7 +42,7 @@ class Image2PDFTest {
 
     @Test
     fun `every page of a multi page tiff ends up in the pdf`() {
-        val file = writeTiff(tempFile("multipage"), (1..3).map { image(1200, 1600) })
+        val file = writeTiff(file = tempFile("multipage"), images = (1..3).map { image(width = 1200, height = 1600) })
 
         image2PDF.convertIfImage(file)
 
@@ -54,7 +54,7 @@ class Image2PDFTest {
     @Test
     fun `a png is converted to a single page pdf`() {
         val file = tempFile("png")
-        ImageIO.write(image(800, 600), "png", file)
+        ImageIO.write(image(width = 800, height = 600), "png", file)
 
         val result = image2PDF.convertIfImage(file)
 
@@ -67,7 +67,7 @@ class Image2PDFTest {
     @Test
     fun `a jpeg is embedded without re-encoding`() {
         val file = tempFile("jpeg")
-        ImageIO.write(image(800, 600), "jpg", file)
+        ImageIO.write(image(width = 800, height = 600), "jpg", file)
 
         val result = image2PDF.convertIfImage(file)
 
@@ -79,7 +79,7 @@ class Image2PDFTest {
 
     @Test
     fun `an existing pdf is left alone`() {
-        val file = writeTiff(tempFile("pdf"), listOf(image(400, 400)))
+        val file = writeTiff(file = tempFile("pdf"), images = listOf(image(width = 400, height = 400)))
         image2PDF.convertIfImage(file)
         val bytesAfterFirstConversion = file.readBytes()
 
@@ -95,7 +95,7 @@ class Image2PDFTest {
         // heap flat; this guards the other half of that contract, that queueing does not corrupt or
         // drop any of the results.
         val serialised = Image2PDF(maxConcurrentConversions = 1, permitTimeoutSeconds = 60)
-        val files = (1..4).map { writeTiff(tempFile("concurrent-$it"), listOf(image(1500, 2000))) }
+        val files = (1..4).map { writeTiff(file = tempFile("concurrent-$it"), images = listOf(image(width = 1500, height = 2000))) }
 
         val pool = Executors.newFixedThreadPool(files.size)
         try {

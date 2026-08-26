@@ -73,7 +73,7 @@ object ImageUtils {
      * done through the PDF placement matrix, so the full pixel data is preserved.
      */
     fun capResolution(image: BufferedImage): BufferedImage {
-        val shrink = shrinkFactor(image.width, image.height)
+        val shrink = shrinkFactor(width = image.width, height = image.height)
         if (shrink <= 1.0) {
             return image
         }

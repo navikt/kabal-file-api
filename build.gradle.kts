@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
+
 val ktlintVersion = "1.8.0"
 val logstashVersion = "9.0"
 val tokenValidationVersion = "5.0.30"
