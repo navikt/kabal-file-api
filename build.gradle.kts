@@ -6,17 +6,17 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 val ktlintVersion = "1.8.0"
 val logstashVersion = "9.0"
 val tokenValidationVersion = "5.0.30"
-val googleCloudVersion = "8.2.2"
+val googleCloudVersion = "8.2.3"
 val pdfboxVersion = "3.0.8"
 val tikaVersion = "4.1.0"
-val twelveMonkeysVersion = "3.15.2"
+val twelveMonkeysVersion = "3.15.3"
 
 repositories {
     mavenCentral()
 }
 
 plugins {
-    val kotlinVersion = "2.4.20"
+    val kotlinVersion = "2.4.21"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     id("org.springframework.boot") version "4.1.1"
