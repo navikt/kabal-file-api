@@ -7,7 +7,6 @@ import no.nav.klage.service.DocumentMetadata
 import no.nav.klage.service.DocumentService
 import no.nav.klage.service.ScanResult
 import no.nav.klage.service.UploadPostPolicy
-import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -24,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 
 @RestController
-@ProtectedWithClaims(issuer = "azuread")
 @RequestMapping("document")
 class KabalController(
     private val documentService: DocumentService,
