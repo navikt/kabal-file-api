@@ -1,7 +1,7 @@
 package no.nav.klage.config
 
-import no.nav.klage.getLogger
-import no.nav.security.token.support.core.context.TokenValidationContextHolder
+import no.nav.klage.auth.currentAzureToken
+import no.nav.klage.auth.navIdent
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -22,37 +22,15 @@ class UnleashConfiguration(
     @Value($$"${NAIS_APP_NAME:kabal-file-api}")
     private val naisAppName: String,
 ) {
-    companion object {
-        @Suppress("JAVA_CLASS_ON_COMPANION")
-        private val logger = getLogger(javaClass.enclosingClass)
-
-        private const val AZURE_AD_ISSUER = "azuread"
-        private const val NAV_IDENT_CLAIM = "NAVident"
-    }
-
     @Bean
     @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
-    fun klageUnleashProxyContext(tokenValidationContextHolder: TokenValidationContextHolder): KlageUnleashProxyContext =
+    fun klageUnleashProxyContext(): KlageUnleashProxyContext =
         KlageUnleashProxyContext(
-            navIdent = getNavIdent(tokenValidationContextHolder),
+            // Null for machine-to-machine (client credentials) calls, which have no NAVident claim.
+            navIdent = currentAzureToken()?.navIdent,
             appName = naisAppName,
             podName = naisPodName,
         )
-
-    /**
-     * Returns null for machine-to-machine (client credentials) calls, which have no NAVident claim.
-     */
-    private fun getNavIdent(tokenValidationContextHolder: TokenValidationContextHolder): String? =
-        try {
-            tokenValidationContextHolder
-                .getTokenValidationContext()
-                .getJwtToken(AZURE_AD_ISSUER)
-                ?.jwtTokenClaims
-                ?.getStringClaim(NAV_IDENT_CLAIM)
-        } catch (e: Exception) {
-            logger.debug("Could not read NAVident from token context.", e)
-            null
-        }
 }
 
 open class KlageUnleashProxyContext(
