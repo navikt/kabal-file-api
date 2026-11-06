@@ -17,4 +17,5 @@ jobs:
     uses: navikt/klage-workflows/.github/workflows/build-deploy-main.yaml@main
     with:
       e2e-tests: 'kabal'
+      java-version: '25'
     secrets: inherit

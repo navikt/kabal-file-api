@@ -20,3 +20,4 @@ jobs:
     secrets: inherit
     with:
       e2e-tests: ${{ inputs.e2e-tests }}
+      java-version: '25'
