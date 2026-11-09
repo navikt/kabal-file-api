@@ -1,5 +1,5 @@
 envs:
   - name: JAVA_TOOL_OPTIONS
-    value: -XX:MaxRAMPercentage=65.0 -XX:+ExitOnOutOfMemoryError -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    value: -XX:MaxRAMPercentage=65.0 -XX:+ExitOnOutOfMemoryError -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 --enable-native-access=ALL-UNNAMED
 
 springProfile: dev

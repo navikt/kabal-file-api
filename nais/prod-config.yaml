@@ -3,6 +3,6 @@ buckets:
 
 envs:
   - name: JAVA_TOOL_OPTIONS
-    value: -XX:MaxRAMPercentage=65.0 -XX:+ExitOnOutOfMemoryError
+    value: -XX:MaxRAMPercentage=65.0 -XX:+ExitOnOutOfMemoryError --enable-native-access=ALL-UNNAMED
 
 springProfile: prod
