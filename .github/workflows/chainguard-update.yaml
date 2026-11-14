@@ -14,8 +14,8 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: navikt/digestabot@3302a753e533ceb9ec216de7f78345436cd636e3 # v1.2
+      - uses: actions/checkout@v7.0.1
+      - uses: navikt/digestabot@v1.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           team: klage
